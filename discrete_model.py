@@ -96,9 +96,7 @@ def model_recessive(row_list, effect_size_type):
 
     # print(aa1,ab1,bb1,aa0,ab0,bb0)
     if (effect_size_type == 'OR'):
-        effect_size = math.log(((bb1 + ab1) /
-                                (bb0 + ab0)) /
-                               (aa1 / aa0))
+        effect_size = math.log(((bb1 + ab1) /(bb0 + ab0)) / (aa1 / aa0))
 
         var = 1 / (bb1 + ab1) + 1 / (bb0 + ab0) + 1 / aa1 + 1 / aa0
     #
