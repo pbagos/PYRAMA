@@ -5,6 +5,7 @@ import os
 import dask.dataframe as dd
 import argparse
 import imputation
+import cont_meta_analysis
 import pandas as pd
 
 
@@ -98,8 +99,7 @@ def gwas_meta_analysis(input_file, output_file, inheritance_model, effect_size_t
     elif all(col in data_df.columns for col in case_3_columns):
         data_subset = data_df[case_3_columns]
         data_subset = data_subset.compute()
-        result = meta_analysis.meta_analysis(data_subset, inheritance_model, effect_size_type,
-                                             robust_method, type_of_effect, approximate_max)
+        result = cont_meta_analysis.meta_analysis(data_subset,inheritance_model,robust_method,type_of_effect)
         result.to_csv(output_file, sep='\t', index=False)
     else:
         raise ValueError("Data does not match the required columns for Case 1, Case 2, or Case 3.")
