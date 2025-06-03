@@ -275,11 +275,11 @@ def meta_analysis(data,inheritance_model, effect_size_type, robust_method, type_
         pValue = norm.sf(abs(z)) * 2
         # normalDib = norm.cdf(abs(weightedMean / math.sqrt(1 / sumW)))
         # pValue = 2 * (1 - normalDib)
-        result = [snp_name, chromosome, pos[0], pValue, weightedMean - product, weightedMean + product, heterogeneity,
+        result = [snp_name, chromosome, pos[0], pValue, weightedMean - product, weightedMean + product,
                   weightedMean, bf]
 
         results_list.append(result)
         # print(result)
     # print(pd.DataFrame(results_list,columns = ['SNP','CHR','P','Weighted_Mean - product','Weighted_Mean + product','Heterogeneity','Weighted_Mean']))
-    return pd.DataFrame(results_list, columns=['SNP', 'CHR', 'BP', 'P', 'CI_lower', 'CI_upper', 'Heterogeneity',
+    return pd.DataFrame(results_list, columns=['SNP', 'CHR', 'BP', 'P', 'CI_lower', 'CI_upper' ,
                                                'Weighted_Mean', 'Bayes_Factor'])

@@ -17,7 +17,7 @@ def meta_analysis(data,inheritance_model,robust_method,type_of_effect):
 
  
     file = data
-    print(data)
+ 
     sumW = 0.0
     sumWY = 0.0
     sumWSquared = 0.0
@@ -58,7 +58,7 @@ def meta_analysis(data,inheritance_model,robust_method,type_of_effect):
 
                 num_of_studies = 1
                 snp_df_single  = np.array(snp_df)  
-                print(snp_df_single)
+                 
                 chrom = np.array([snp_df[0][0]],dtype = int)
                 pos = np.array([snp_df[0][1]],dtype = int)
 
@@ -137,7 +137,7 @@ def meta_analysis(data,inheritance_model,robust_method,type_of_effect):
 
                 row_list = [xaa,sdaa,naa,xab,sdab,nab,xbb,sdbb,nbb]
                 # print('----------row_list----------')
-                print(row_list)
+                
 
                 effect_size = 0
                 var = 0
@@ -198,8 +198,7 @@ def meta_analysis(data,inheritance_model,robust_method,type_of_effect):
                 if (inheritance_model != 'ALL'):
                     weight = 1/var
 
-                print('WEIGHT:' + str(weight))
-                print('E_SIZE:' + str(effect_size))
+                 
 
                 weight_list.append(weight)
                 # If Robust methods are not selected (add if statements if model = 'ALL')

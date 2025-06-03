@@ -38,8 +38,9 @@ def model_dominant(row_list, effect_size_type):
 
 
 def model_additive(row_list, effect_size_type):  # allelic model
-    effect_size = 0
-    var = 0
+    #effect_size = 0
+    #var = 0
+   
     aa1 = float(row_list[0])
     ab1 = float(row_list[1])
     bb1 = float(row_list[2])
