@@ -195,7 +195,7 @@ def meta_analysis(data,inheritance_model,robust_method,type_of_effect):
                  # get effect_sizes and variances from the model
                 es_list.append(effect_size)
                 var_list.append(var)
-                if (inheritance_model != 'ALL)'):
+                if (inheritance_model != 'ALL'):
                     weight = 1/var
 
                 print('WEIGHT:' + str(weight))
