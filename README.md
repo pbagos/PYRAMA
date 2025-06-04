@@ -1,12 +1,5 @@
 # PYRAMA
-
-
-# PYRAMA: Robust Analysis and Meta-Analysis of GWAS
-
-> **Version 1.0.0 (July 2025)**  
-> A Python tool for robust and flexible meta-analysis of genome-wide association studies (GWAS), developed by Pantelis Bagos.  
-> Licensed under the GNU General Public License v3 (GPLv3).
-
+ 
 ---
 
 ## Table of Contents
