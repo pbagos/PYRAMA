@@ -2,32 +2,7 @@
  
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)  
-2. [Features](#features)  
-3. [Dependencies & Requirements](#dependencies--requirements)  
-4. [Installation](#installation)  
-5. [Directory Structure](#directory-structure)  
-6. [Script Overview](#script-overview)  
-   - [1. `process_snps`](#1-process_snps)  
-   - [2. `merge_input_files`](#2-merge_input_files)  
-   - [3. `gwas_meta_analysis`](#3-gwas_meta_analysis)  
-   - [4. Command-Line Interface](#4-command-line-interface)  
-7. [Usage Examples](#usage-examples)  
-   - [A. Basic Discrete Phenotype Meta-Analysis](#a-basic-discrete-phenotype-meta-analysis)  
-   - [B. Bivariate Meta-Analysis (Count-Based)](#b-bivariate-meta-analysis-count-based)  
-   - [C. Bivariate Meta-Analysis (Beta & SE-Based)](#c-bivariate-meta-analysis-beta--se-based)  
-   - [D. Continuous Phenotype Meta-Analysis](#d-continuous-phenotype-meta-analysis)  
-   - [E. Meta-Analysis with Imputation](#e-meta-analysis-with-imputation)  
-8. [Arguments & Options](#arguments--options)  
-9. [Output Files](#output-files)  
-10. [Error Handling & Logging](#error-handling--logging)  
-11. [Developer Notes](#developer-notes)  
-12. [License](#license)  
-
----
-
+ 
 ## Introduction
 
 The **PYRAMA** (Python Robust Analysis and Meta-Analysis) toolkit is designed to streamline large-scale meta-analyses of GWAS summary statistics. This script handles multiple inheritance models, effect-size types, and phenotypic inputs (discrete, continuous, and bivariate), and it supports optional Bayesian approaches, robust methods (including FAST robust analysis), and genotype imputation for missing data. The script dynamically detects the input columns in your GWAS summary files and dispatches the appropriate analysis pipeline.
