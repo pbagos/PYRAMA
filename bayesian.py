@@ -25,10 +25,10 @@ def bayesian_meta_analysis_discrete(beta_list, se_list,n_i):
 
     mean_y_i = np.mean(y_i)
     k = len(y_i)
-    if k < 3:
+    if k < 3: # if studies are below 3, a=2, b=2
         a = 2
         b = 2
-    else:
+    else: # if studies are above 3, a=0, b=2
         a = 0
         b = 2
 
@@ -91,12 +91,10 @@ def bayesian_meta_analysis_discrete(beta_list, se_list,n_i):
 
 
 
-def meta_analysis(path, file_list, inheritance_model, effect_size_type, robust_method, approximate_max):
-    study_list = []
-    for file in file_list:
-        study_list.append(pd.read_csv(path + file, sep='\t', encoding='latin1'))
+def meta_analysis(data, inheritance_model, effect_size_type, robust_method, approximate_max):
+     
     # merge... files
-    file = study_list[0]
+    file = data.dropna()
     sumW = 0.0
     sumWY = 0.0
     sumWSquared = 0.0
@@ -294,41 +292,41 @@ def meta_analysis(path, file_list, inheritance_model, effect_size_type, robust_m
  
 
         bayesian_results_list.append( bayesian_result)
-    return pd.DataFrame(bayesian_results_list, columns=['SNP', 'CHR', 'BP', 'P',"E_m","E_tau_square","V_mu","V_tau_square","conf_int_lower","conf_int_up",'Z'])
+    return pd.DataFrame(bayesian_results_list, columns=['SNP', 'CHR', 'BP', 'P',"E_m","E_tau_square","V_mu","V_tau_square","CI_low","CI_up",'Z'])
 
 
 
-def main():
+# def main():
   
-    parser = argparse.ArgumentParser(description="Perform Bayesian meta-analysis on GWAS data.")
-    parser.add_argument("--path", required=True, help="Path to the directory containing input files.")
-    parser.add_argument("--file_list", required=True, nargs='+', help="List of input files separated by spaces.")
-    parser.add_argument("--inheritance_model", required=True, choices=["RECESSIVE", "DOMINANT", "ADDITIVE", "ALL"],
-                        help="Inheritance model to use.")
-    parser.add_argument("--effect_size_type", required=True, help="Type of effect size to calculate.")
-    parser.add_argument("--robust_method", required=True, choices=["MIN", "MAX", "MERT"],
-                        help="Robust method to use for calculations.")
-    parser.add_argument("--approximate_max", required=True,
-                        help="Approximate maximum value for robust calculations.")
-    parser.add_argument("--output", required=True, help="Path and name of the output file (tab-separated).")
+    # parser = argparse.ArgumentParser(description="Perform Bayesian meta-analysis on GWAS data.")
+    # parser.add_argument("--path", required=True, help="Path to the directory containing input files.")
+    # parser.add_argument("--file_list", required=True, nargs='+', help="List of input files separated by spaces.")
+    # parser.add_argument("--inheritance_model", required=True, choices=["RECESSIVE", "DOMINANT", "ADDITIVE", "ALL"],
+                        # help="Inheritance model to use.")
+    # parser.add_argument("--effect_size_type", required=True, help="Type of effect size to calculate.")
+    # parser.add_argument("--robust_method", required=True, choices=["MIN", "MAX", "MERT"],
+                        # help="Robust method to use for calculations.")
+    # parser.add_argument("--approximate_max", required=True,
+                        # help="Approximate maximum value for robust calculations.")
+    # parser.add_argument("--output", required=True, help="Path and name of the output file (tab-separated).")
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
-    # Parse arguments
-    path = args.path
-    file_list = args.file_list
-    inheritance_model = args.inheritance_model
-    effect_size_type = args.effect_size_type
-    robust_method = args.robust_method
-    approximate_max = args.approximate_max
-    output_file = args.output
+    # # Parse arguments
+    # path = args.path
+    # file_list = args.file_list
+    # inheritance_model = args.inheritance_model
+    # effect_size_type = args.effect_size_type
+    # robust_method = args.robust_method
+    # approximate_max = args.approximate_max
+    # output_file = args.output
 
-    # Perform meta-analysis
-    results = meta_analysis(path, file_list, inheritance_model, effect_size_type, robust_method, approximate_max)
+    # # Perform meta-analysis
+    # results = meta_analysis(data, inheritance_model, effect_size_type, robust_method, approximate_max)
 
-    # Save results as a tab-separated text file
-    results.to_csv(output_file, sep="\t", index=False)
-    print(f"Bayesian Meta-analysis completed. Results saved to {output_file}")
+    # # Save results as a tab-separated text file
+    # results.to_csv(output_file, sep="\t", index=False)
+    # print(f"Bayesian Meta-analysis completed. Results saved to {output_file}")
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+    # main()

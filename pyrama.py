@@ -7,6 +7,9 @@ import argparse
 import imputation
 import cont_meta_analysis
 import fast_robust_analysis
+import bayesian
+import bivariate
+import bivariate_gwas
 import pandas as pd
 
 
@@ -60,34 +63,66 @@ def merge_input_files(file_list):
 
 def gwas_meta_analysis(input_files, output_file, inheritance_model, effect_size_type,
                        robust_method, type_of_effect, approximate_max, biv_ma='NO',
-                       imputation=False, r2threshold=None, population=None, maf=None, ref=None, imp_list=None):
+                       imputation=False, bayesian_meta = 'NO',r2threshold=None, population=None, maf=None, ref=None, imp_list=None):
     print("Running GWAS Meta-Analysis:")
 
     # Merge input files
     merged_df = merge_input_files(input_files)
     data_df =  merged_df
-
+    print(data_df)
     case_1_columns = ['SNP', 'CHR', 'BP', 'aa1', 'ab1', 'bb1', 'aa0', 'ab0', 'bb0']
+    case_12_columns = ['SNP', 'CHR', 'BP','aa2', 'ab2', 'bb2', 'aa1', 'ab1', 'bb1', 'aa0', 'ab0', 'bb0']
     case_2_columns = ['SNP', 'CHR', 'BP', 'BETA', 'SE']
-    case_3_columns = ['SNP', 'CHR', 'BP', 'xaa', 'sdaa', 'naa', 'xab', 'sdab', 'nab', 'xbb', 'sdbb', 'nbb']
+    case_22_columns = ['SNP', 'CHR', 'BP', 'BETA1', 'SE1','BETA2', 'SE2']
 
-    if all(col in data_df.columns for col in case_1_columns):
+    case_3_columns = ['SNP', 'CHR', 'BP', 'xaa', 'sdaa', 'naa', 'xab', 'sdab', 'nab', 'xbb', 'sdbb', 'nbb']
+    
+    if  all(col in data_df.columns for col in case_12_columns):
+      
+          data_subset = data_df[case_12_columns]  
+          print("Bivariate meta-analysis")
+          result = bivariate.biv_meta_analysis(data_subset,inheritance_model,effect_size_type,robust_method,type_of_effect,approximate_max)
+          result.to_csv(output_file, sep='\t', index=False)
+    
+    
+    elif  all(col in data_df.columns for col in case_22_columns):
+          data_subset = data_df[case_22_columns]  
+          print("Bivariate meta-analysis with BETA and SE")
+          
+          result = bivariate_gwas.beta_SE_meta(data_subset)
+          
+          result.to_csv(output_file, sep='\t', index=False)
+          
+          
+    elif all(col in data_df.columns for col in case_1_columns):
         data_subset = data_df[case_1_columns]
            
-           
+        print("Discrete phenotype input detected")   
         if (robust_method =='FAST'):
-        
+            print("Fast Robust methods analysis/meta-analysis")
             result = fast_robust_analysis.fast_robust_analysis(data_subset,effect_size_type)
+        if (bayesian_meta == 'YES'):
+        
+            print("Bayesian meta-analysis")
+            result = bayesian.meta_analysis(data_subset, inheritance_model, effect_size_type, robust_method, approximate_max)
+    
+        
         
         else:
+            print("Standard meta-analysis")
+
             result = meta_analysis.meta_analysis(data_subset, inheritance_model, effect_size_type,
                                              robust_method, type_of_effect, approximate_max)
         
         
         
         result.to_csv(output_file, sep='\t', index=False)
-
+        
+        
+    
+             
     elif all(col in data_df.columns for col in case_2_columns):
+    
         if imputation:
             print("Performing imputation...")
             if not all([r2threshold, population, maf, ref]):
@@ -112,6 +147,7 @@ def gwas_meta_analysis(input_files, output_file, inheritance_model, effect_size_
         os.system(f"./pyrama_beta_SE_meta {input_file} > {output_file}")
 
     elif all(col in data_df.columns for col in case_3_columns):
+        print("Continous phenotype input detected")
         data_subset = data_df[case_3_columns]
     
         result = cont_meta_analysis.meta_analysis(data_subset, inheritance_model, robust_method, type_of_effect)
@@ -151,7 +187,11 @@ _______  __      __  _______    ______   __       __   ______
     parser.add_argument("--type_of_effect", required=False, help="Type of effect. FIXED or RANDOM")
     parser.add_argument("--approximate_max", required=False, help="Approximate maximum. YES or NO")
     parser.add_argument("--biv_ma", default="NO", help="Bivariate meta-analysis (default: NO).")
+   
+
+
     parser.add_argument("--imputation", action="store_true", help="Enable imputation step (default: disabled).")
+    parser.add_argument("--bayesian_meta",default="NO", help="Bayesian meta-analysis (default: NO).")
     parser.add_argument("--r2threshold", required=False, help="R2 threshold for imputation.")
     parser.add_argument("--population", required=False, help="Population for imputation.")
     parser.add_argument("--maf", required=False, help="Minor allele frequency for imputation.")
@@ -162,4 +202,4 @@ _______  __      __  _______    ______   __       __   ______
 
     gwas_meta_analysis(args.i, args.o, args.inheritance_model, args.effect_size_type,
                        args.robust_method, args.type_of_effect, args.approximate_max, args.biv_ma,
-                       args.imputation, args.r2threshold, args.population, args.maf, args.ref, args.imp_list)
+                       args.imputation, args.bayesian_meta, args.r2threshold, args.population, args.maf, args.ref, args.imp_list)

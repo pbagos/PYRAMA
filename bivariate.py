@@ -7,19 +7,16 @@ import robust,discrete_model
 import sys
 from scipy.integrate import quad
 from scipy.stats import norm, chi2
-from bivariate_gwas import MMoM_analysis
+from bivariate_gwas import mmom_multi
 global new_weight,results_list,effect_size1,effect_size2,var1,var2
 
 results_list = []
 
 
 
-def biv_meta_analysis(path,file_list,inheritance_model,effect_size_type,robust_method,type_of_effect,approximate_max):
-    study_list = []
-    for file in file_list:
-        study_list.append(pd.read_csv(path + file, sep='\t'))
-    # merge... files
-    file = study_list[0]
+def biv_meta_analysis(data,inheritance_model,effect_size_type,robust_method,type_of_effect,approximate_max):
+    
+    file = data
     sumW = 0.0
     sumWY = 0.0
     sumWSquared = 0.0
@@ -389,49 +386,71 @@ def biv_meta_analysis(path,file_list,inheritance_model,effect_size_type,robust_m
             pos_list.append(pos[0])
           
             
+                # Combine ys1 and ys2 into a 2D array for input into mmom_multi
+        ys = np.column_stack((es_list, es_list2))  # This creates a 2D array: each row [ys1, ys2]
+
+        # Combine vars1 and vars2 into a 2D array (optional, depends on how your function uses them)
+        vars_ = np.column_stack((var_list, var_list2))  # Create a 2D array for variances
+    
+        res = mmom_multi(ys, vars_)
+        beta_hat = res['beta_hat']
+        beta_cov = res['beta_cov']
+        
+        
+        
+        # Compute the Wald statistic and associated p-value.
+        try:
+            inv_cov = np.linalg.pinv(beta_cov)
+            # Wald statistic: beta_hat' * inv_cov * beta_hat.
+            wald = beta_hat.T @ inv_cov @ beta_hat
+            p_value = chi2.sf(wald, df=beta_cov.shape[0])
+        except np.linalg.LinAlgError:
+            wald = np.nan
+            p_value = np.nan
             
-        beta_average,beta_average_se,p_value_beta,delta_hat,delta_se,p_value_delta = MMoM_analysis(es_list, es_list2, var_list, var_list2)    
-        results_list.append([snp_name,chromosome,pos[0],beta_average,beta_average_se,p_value_beta,delta_hat,delta_se,p_value_delta])
+            
+        results_list.append([snp_name,chromosome,pos[0],beta_hat[0],beta_hat[1],np.sqrt(np.diag(beta_cov))[0],np.sqrt(np.diag(beta_cov))[1],wald,p_value ])
         
     #print(pd.DataFrame(snp_name_list, chrom_list,pos_list,results_list,columns = ['SNP','CHR','BP','Beta_average','Beta_Standard_Error','p_value_beta','Delta_hat','Delta_Standard_Error','p_value_delta']))
     # print (results_list)
     #df1 = pd.DataFrame({'SNP':snp_name_list, 'CHR':chrom_list, 'BP':pos_list})
     # print(df1)
-    df2 = pd.DataFrame(results_list,columns = ['SNP','CHR','BP','Beta_average','Beta_Standard_Error','p_value_beta','Delta_hat','Delta_Standard_Error','p_value_delta'])
+    df2 = pd.DataFrame(results_list,columns = ['SNP','CHR','BP','meta_BETA1','meta_BETA2','meta_SE1','meta_SE2','Wald' ,'P' ])
     #total = pd.concat([df1, df2], axis=1)
+   
     return df2
   
   
   
   
-# Main execution
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run bivariate meta-analysis for GWAS data.")
-    parser.add_argument("--path", required=True, help="Path to the directory containing GWAS files.")
-    parser.add_argument("--file_list", nargs='+', required=True, help="List of GWAS data files.")
-    parser.add_argument("--inheritance_model", required=True, choices=['RECESSIVE', 'DOMINANT', 'ADDITIVE', 'ALL'],
-                        help="Inheritance model to use.")
-    parser.add_argument("--effect_size_type", required=True, help="Type of effect size calculation.")
-    parser.add_argument("--robust_method", required=True, choices=['MIN', 'MAX', 'MERT'],
-                        help="Robust method to apply.")
-    parser.add_argument("--type_of_effect", required=True, help="Type of effect to compute.")
-    parser.add_argument("--approximate_max", required=True, help="Approximation max value.")
-    parser.add_argument("--output", required=True, help="Path and name of the output file (tab-separated).")
+# # Main execution
+# if __name__ == "__main__":
+    # parser = argparse.ArgumentParser(description="Run bivariate meta-analysis for GWAS data.")
+    # parser.add_argument("--path", required=True, help="Path to the directory containing GWAS files.")
+    # parser.add_argument("--file_list", nargs='+', required=True, help="List of GWAS data files.")
+    # parser.add_argument("--inheritance_model", required=True, choices=['RECESSIVE', 'DOMINANT', 'ADDITIVE', 'ALL'],
+                        # help="Inheritance model to use.")
+    # parser.add_argument("--effect_size_type", required=True, help="Type of effect size calculation.")
+    # parser.add_argument("--robust_method", required=True, choices=['MIN', 'MAX', 'MERT'],
+                        # help="Robust method to apply.")
+    # parser.add_argument("--type_of_effect", required=True, help="Type of effect to compute.")
+    # parser.add_argument("--approximate_max", required=True, help="Approximation max value.")
+    # parser.add_argument("--output", required=True, help="Path and name of the output file (tab-separated).")
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
-    # Run the function with command-line arguments
-    results = biv_meta_analysis(
-        path=args.path,
-        file_list=args.file_list,
-        inheritance_model=args.inheritance_model,
-        effect_size_type=args.effect_size_type,
-        robust_method=args.robust_method,
-        type_of_effect=args.type_of_effect,
-        approximate_max=args.approximate_max
-    )
-    output_file = args.output
+    # # Run the function with command-line arguments
+    # results = biv_meta_analysis(
+        # path=args.path,
+        # file_list=args.file_list,
+        # inheritance_model=args.inheritance_model,
+        # effect_size_type=args.effect_size_type,
+        # robust_method=args.robust_method,
+        # type_of_effect=args.type_of_effect,
+        # approximate_max=args.approximate_max
+    # )
+    # output_file = args.output
     
-    # Save the results
-    results.to_csv(output_file, sep='\t', index=False)
-    print(f"Bivariate Meta-analysis completed. Results saved to {output_file}")
+    # # Save the results
+    # results.to_csv(output_file, sep='\t', index=False)
+    # print(f"Bivariate Meta-analysis completed. Results saved to {output_file}")
