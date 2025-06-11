@@ -28,7 +28,7 @@ A Python tool for robust analysis and meta-analysis of Genome Wide Association S
 ## Features
 
 - **Flexible input formats**: beta/SE, discrete phenotypes and continuous phenotypes.  
-- **Robust methods**: MIN, MAX, MERT, or FAST (MinP, Cauchy,CMC,MCM Combination tests).  
+- **Robust methods**: MIN, MAX, MERT, or FAST (MinP, Cauchy, CMC, MCM Combination tests).  
 - **Bayesian meta-analysis**  
 - **Summary statistics Imputation** with LD statistics as reference panels (`pred_ld.py`).  
  
@@ -41,7 +41,7 @@ A Python tool for robust analysis and meta-analysis of Genome Wide Association S
 - Python 3.10+  
 - Requirements specified in requirements.txt
 - `pyrama_beta_se_meta` binary or script (for beta/SE meta-analysis), compile :  g++ -std=c++11 -O2 -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp
-
+- 'ref' folder containing LD information of each reference panel in parquet file format (available for download here : ... ). After downloading, extract to the working folder of PYRAMA. The Pheno Scanner LD reference panel is available upon request from the Pheno Scanner database (http://www.phenoscanner.medschl.cam.ac.uk) 
 
 
 ---
