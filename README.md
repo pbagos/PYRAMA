@@ -27,10 +27,55 @@ A Python tool for robust analysis and meta-analysis of Genome Wide Association S
 
 ## Features
 
-- **Flexible input formats**: beta/SE, discrete phenotypes and continuous phenotypes.  
+- **Meta-analysis with many input formats**: BETA/SE, discrete phenotypes and continuous phenotypes (see below).
+
+ 
+### 1. Discrete Phenotypes
+
+A tab-delimited file with the following columns:
+
+| SNP  | CHR | BP        | aa1 | ab1 | bb1 | aa0 | ab0 | bb0 |
+|------|-----|-----------|-----|-----|-----|-----|-----|-----|
+| rs1  | 11  | 84095494  | 0   | 23  | 244 | 9   | 83  | 178 |
+| rs2  | 17  | 19683106  | 8   | 76  | 183 | 31  | 121 | 118 |
+| rs3  | 4   | 68129844  | 4   | 58  | 205 | 13  | 93  | 164 |
+| rs4  | 10  | 44481115  | 2   | 37  | 228 | 8   | 76  | 186 |
+| rs5  | 4   | 68116450  | 21  | 109 | 137 | 43  | 129 | 98  |
+
+ 
+
+### 2. Continuous Phenotypes
+
+A tab-delimited file with the following columns:
+
+| SNP        | CHR | BP  | xaa      | sdaa   | naa  | xab       | sdab   | nab  | xbb      | sdbb   | nbb  |
+|------------|-----|-----|----------|--------|------|-----------|--------|------|----------|--------|------|
+| rs1000000  | 1   | 100 | -0.02762 | 0.9914 | 283  | -0.01343  | 0.9956 | 1866 | 0.0106   | 1.003  | 3102 |
+| rs1000000  | 1   | 100 | -0.1341  | 1.053  | 45   | -0.01535  | 0.9676 | 262  | 0.01574  | 1.013  | 514  |
+| rs1000000  | 1   | 100 | -0.3615  | 1.053  | 10   | 0.06759   | 0.9186 | 93   | -0.01571 | 1.040  | 170  |
+| rs1000000  | 1   | 100 | -0.02187 | 0.9836 | 172  | -0.002833 | 1.001  | 1320 | 0.00291  | 1.001  | 2578 |
+| rs10000010 | 1   | 200 | -0.0109  | 1.001  | 1354 | 0.006966  | 0.9842 | 2628 | -0.002799| 1.032  | 126  |
+
+  
+### 3. BETA/SE Format
+
+A tab-delimited file with these columns:
+
+| SNP        | CHR | BP        | A1 | A2 | BETA         | SE           |
+|------------|-----|-----------|----|----|--------------|--------------|
+| rs374450   | 1   | 12305285  | A  | G  | -0.117157114 | 0.170367578  |
+| rs10489599 | 1   | 16585817  | A  | G  | 0.111312914  | 0.125714433  |
+| rs9725656  | 1   | 18460525  | T  | C  | -0.038092709 | 0.123232082  |
+| rs1106839  | 1   | 19420391  | A  | G  | 0.004437813  | 0.124570835  |
+| rs2274001  | 1   | 19464772  | T  | C  | 0.012144373  | 0.124526074  |
+| rs763310   | 1   | 23382728  | A  | G  | 0.109739628  | 0.162575637  |
+| rs1555024  | 1   | 23786202  | T  | C  | 0.064983064  | 0.128258158  |
+
+
+  
 - **Robust methods**: MIN, MAX, MERT, or FAST (MinP, Cauchy, CMC, MCM Combination tests).  
 - **Bayesian meta-analysis**  
-- **Summary statistics Imputation** with LD statistics as reference panels (`pred_ld.py`).  
+- **Summary statistics imputation** with LD statistics as reference panels (`pred_ld.py`).  
  
 ---
 
