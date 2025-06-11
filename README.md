@@ -19,7 +19,8 @@ A Python tool for robust analysis and meta-analysis of Genome Wide Association S
     - [Case 3: Continuous Phenotype](#case-3-continuous-phenotype)  
     - [Bivariate Meta-Analysis](#bivariate-meta-analysis)  
 - [API Reference](#api-reference)  
-- [Examples](#examples)  
+- [Examples](#examples)
+- [Use case scenario data](#use-case-scenario-data)
 - [Contributing](#contributing)  
 - [License](#license)  
 
@@ -168,7 +169,11 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
 ```bash
 python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o continuous_meta.txt   --inheritance_model ADDITIVE   --robust_method MAX   --type_of_effect RANDOM
 ```
- 
+##Use case scenario data 
+
+Use case scenario data are available [here](https://drive.google.com/file/d/19fUN46UbhOgE6qTpICNM-OQTHqpmHjTA/view?usp=drive_link).
+
+The replication report is available at analysis_code.html  file of this repository
 
 ## Contributing
 
