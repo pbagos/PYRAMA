@@ -2,7 +2,7 @@ import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import gc
-
+import polars as pl 
 pd.set_option('display.width', None)
 
 
@@ -125,78 +125,187 @@ def harmonise_data_Hap_Map(joined_data_ref):
 def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp_list):
     print(f"Loading Hap Map files ({population}) ...")
 
-    if population not in ['YRI', 'CHB', 'JPT', 'CEU', 'MKK', 'LWK', 'CHD', 'GIH', "TSI", 'MEX', "ASW"]:
-        print("This population is not available in HapMap files. Please select a different population...")
-        exit()
-    maf_file = f'ref/Hap_Map/allele_freqs_chr{chrom}_{population}_phase3.2_nr.b36_fwd.txt.gz'
-    ld_file = f'ref/Hap_Map/ld_chr{chrom}_{population}.txt.gz'
-    maf_df = dd.read_csv(maf_file, sep='\s+', blocksize=None)
-    # Calculating the Minor Allele Frequency (MAF)
-    # maf_df['MAF'] = maf_df[['refallele_freq', 'otherallele_freq']].min(axis=1)
+    # if population not in ['YRI', 'CHB', 'JPT', 'CEU', 'MKK', 'LWK', 'CHD', 'GIH', "TSI", 'MEX', "ASW"]:
+        # print("This population is not available in HapMap files. Please select a different population...")
+        # exit()
+    # maf_file = f'ref/Hap_Map/allele_freqs_chr{chrom}_{population}_phase3.2_nr.b36_fwd.parquet'
+    # ld_file = f'ref/Hap_Map/ld_chr{chrom}_{population}.parquet'
+    # maf_df = pd.read_parquet(maf_file  )
+    # print(maf_df)
+    # print(maf_df.columns)
 
-    maf_df['MAF'] = maf_df['otherallele_freq']
+    # # Calculating the Minor Allele Frequency (MAF)
+    # # maf_df['MAF'] = maf_df[['refallele_freq', 'otherallele_freq']].min(axis=1)
 
-    # Renaming columns in the DataFrame
-    maf_df = maf_df.rename(columns={'refallele': 'REF', 'otherallele': 'ALT'})
+    # maf_df['MAF'] = maf_df['otherallele_freq']
 
-    # Filter MAF DataFrame using Dask
-    # maf_df = dd.read_csv(maf_file, sep='\s+',blocksize=None, usecols=['rs#', 'chrom', 'BP', 'otherallele_freq'],  )
+    # # Renaming columns in the DataFrame
+    # maf_df = maf_df.rename(columns={'refallele': 'REF', 'otherallele': 'ALT'})
 
-    # maf_df['het-freq'] = maf_df['het-freq'].astype(float)
-    maf_df = maf_df[maf_df['MAF'] >= float(maf_threshold)]
+    # # Filter MAF DataFrame using Dask
+    # # maf_df = dd.read_csv(maf_file, sep='\s+',blocksize=None, usecols=['rs#', 'chrom', 'BP', 'otherallele_freq'],  )
 
-    # Process LD DataFrame using Dask
-    ld_df = dd.read_csv(ld_file, blocksize=None, sep='\s+', header=None)
+    # # maf_df['het-freq'] = maf_df['het-freq'].astype(float)
+    # maf_df = maf_df[maf_df['MAF'] >= float(maf_threshold)]
 
-    ld_df = ld_df[(ld_df[3] != ld_df[4]) & (ld_df[6] >= R2_threshold)]
+    # # Process LD DataFrame using Dask
+    # ld_df = pd.read_parquet(ld_file,    header=None)
 
-    maf_df = maf_df.rename(columns={'rs#': 'rsID'})
+    # ld_df = ld_df[(ld_df[3] != ld_df[4]) & (ld_df[6] >= R2_threshold)]
 
-    # Define the new column names
-    new_column_names = {
-        0: 'pos1',
-        1: 'pos2',
-        2: 'pop',
-        3: 'rsID1',
-        4: 'rsID2',
-        5: 'Dprime',
-        6: 'R2'
-    }
+    # maf_df = maf_df.rename(columns={'rs#': 'rsID'})
 
-    # Rename the columns
-    ld_df = ld_df.rename(columns=new_column_names)
+    # # Define the new column names
+    # new_column_names = {
+        # 0: 'pos1',
+        # 1: 'pos2',
+        # 2: 'pop',
+        # 3: 'rsID1',
+        # 4: 'rsID2',
+        # 5: 'Dprime',
+        # 6: 'R2'
+    # }
 
-    merged_df = dd.merge(ld_df, maf_df, left_on='rsID1', right_on='rsID')
-    merged_df = dd.merge(merged_df, maf_df, left_on='rsID2', right_on='rsID')
+    # # Rename the columns
+    # ld_df = ld_df.rename(columns=new_column_names)
 
-    merged_df = merged_df[
-        ['pos1', 'pos2', 'rsID1', 'rsID2', 'MAF_x', "MAF_y", 'REF_x', 'REF_y', 'ALT_x', 'ALT_y', "R2", "Dprime"]]
-    merged_df = merged_df.rename(
-        columns={'MAF_x': 'MAF1', 'MAF_y': 'MAF2', 'REF_x': 'REF1', 'REF_y': 'REF2', 'ALT_x': 'ALT1', 'ALT_y': 'ALT2'})
+    # merged_df = dd.merge(ld_df, maf_df, left_on='rsID1', right_on='rsID')
+    # merged_df = dd.merge(merged_df, maf_df, left_on='rsID2', right_on='rsID')
 
-    if imp_snp_list:
-        final_result = merged_df[merged_df['rsID1'].isin(rs_list) & merged_df['rsID2'].isin(imp_snp_list)]
+    # merged_df = merged_df[
+        # ['pos1', 'pos2', 'rsID1', 'rsID2', 'MAF_x', "MAF_y", 'REF_x', 'REF_y', 'ALT_x', 'ALT_y', "R2", "Dprime"]]
+    # merged_df = merged_df.rename(
+        # columns={'MAF_x': 'MAF1', 'MAF_y': 'MAF2', 'REF_x': 'REF1', 'REF_y': 'REF2', 'ALT_x': 'ALT1', 'ALT_y': 'ALT2'})
 
-    else:
-        final_result = merged_df[merged_df['rsID1'].isin(rs_list)]
-    # Clean up
-    del ld_df, maf_df,merged_df
-    gc.collect()
-    final_result = final_result.compute()  # Important: This triggers the actual computation
-    if final_result.empty:
-        print("No SNPs found")
-        #
-        #
+    # if imp_snp_list:
+        # final_result = merged_df[merged_df['rsID1'].isin(rs_list) & merged_df['rsID2'].isin(imp_snp_list)]
 
-    final_result.reset_index(inplace=True, drop=True)
-    #final_result.to_csv('LD_info_Hap_Map_chr' + str(chrom) + '.txt', sep="\t", index=False)
+    # else:
+        # final_result = merged_df[merged_df['rsID1'].isin(rs_list)]
+    # # Clean up
+    # del ld_df, maf_df,merged_df
+    # gc.collect()
+    # #final_result = final_result.compute()  # Important: This triggers the actual computation
+    # if final_result.empty:
+        # print("No SNPs found")
+        # #
+        # #
 
-    final_result.rename(columns={"MAF1": "ALT_AF1", "MAF2": "ALT_AF2"}).to_csv(
-        'LD_info_Hap_Map_chr' + str(chrom) + '.txt', sep="\t", index=False
+    # final_result.reset_index(inplace=True, drop=True)
+    # #final_result.to_csv('LD_info_Hap_Map_chr' + str(chrom) + '.txt', sep="\t", index=False)
+
+    # # final_result.rename(columns={"MAF1": "ALT_AF1", "MAF2": "ALT_AF2"}).to_csv(
+        # # 'LD_info_Hap_Map_chr' + str(chrom) + '.txt', sep="\t", index=False
+    # # )
+    # final_result.rename(columns={"MAF1": "ALT_AF1", "MAF2": "ALT_AF2"})
+    # return final_result
+    # 1) Validate population
+    valid_pops = ['YRI', 'CHB', 'JPT', 'CEU', 'MKK', 'LWK',
+                  'CHD', 'GIH', 'TSI', 'MEX', 'ASW']
+    if population not in valid_pops:
+        raise ValueError(f"Population '{population}' not available. Choose from: {valid_pops}")
+
+    # 2) File paths
+    maf_file = f'ref/Hap_Map/allele_freqs_chr{chrom}_{population}_phase3.2_nr.b36_fwd.parquet'
+    ld_file  = f'ref/Hap_Map/ld_chr{chrom}_{population}.parquet'
+
+    # 3) Read and preprocess MAF table
+    maf_df = (
+        pl.read_parquet(maf_file)
+          # compute MAF as 'otherallele_freq'
+          .with_columns(pl.col("otherallele_freq").alias("MAF"))
+          # keep only the needed columns
+          .select(["rs#", "refallele", "otherallele", "MAF"])
+          # rename to match downstream joins
+          .rename({
+              "rs#": "rsID",
+              "refallele": "REF",
+              "otherallele": "ALT"
+          })
+          # filter on MAF threshold
+          .filter(pl.col("MAF") >= float(maf_threshold))
     )
 
-    return final_result
+    # 4) Read and preprocess LD table
+    #    Parquet likely comes with integer column names (0,1,2,…). We filter & rename by position.
+    ld_raw = pl.read_parquet(ld_file)
+    cols = ld_raw.columns  # e.g. ['0','1','2',…] or positional ints
 
+    ld_df = (
+        ld_raw
+        # keep only pairs where alleles differ and R2 >= threshold
+        .filter(
+            (pl.col(cols[3]) != pl.col(cols[4])) &
+            (pl.col(cols[6]) >= float(R2_threshold))
+        )
+        # rename the first 7 columns to names
+        .rename({
+            cols[0]: "pos1",
+            cols[1]: "pos2",
+            cols[2]: "pop",
+            cols[3]: "rsID1",
+            cols[4]: "rsID2",
+            cols[5]: "Dprime",
+            cols[6]: "R2"
+        })
+        # drop any extra columns beyond the 7 we care about
+        .select(["pos1", "pos2", "pop", "rsID1", "rsID2", "Dprime", "R2"])
+    )
+
+    # 5) Join LD ↔ MAF on rsID1 and rsID2
+    #    First join on rsID1 (adds REF, ALT, MAF from maf_df)
+    tmp = ld_df.join(maf_df, left_on="rsID1", right_on="rsID", how="inner")
+    #    Then join that result on rsID2 (suffix="_2" for the second maf columns)
+    merged = tmp.join(
+        maf_df,
+        left_on="rsID2",
+        right_on="rsID",
+        how="inner",
+        suffix="_2"
+    )
+
+    # 6) Select & reorder columns, and rename duplicates
+    result = merged.select([
+        pl.col("pos1"),
+        pl.col("pos2"),
+        pl.col("rsID1"),
+        pl.col("rsID2"),
+        pl.col("MAF").alias("MAF1"),
+        pl.col("MAF_2").alias("MAF2"),
+        pl.col("REF").alias("REF1"),
+        pl.col("REF_2").alias("REF2"),
+        pl.col("ALT").alias("ALT1"),
+        pl.col("ALT_2").alias("ALT2"),
+        pl.col("R2"),
+        pl.col("Dprime")
+    ])
+
+    # 7) Apply the user’s SNP‐list filter
+    if imp_snp_list:
+        result = result.filter(
+            pl.col("rsID1").is_in(rs_list) &
+            pl.col("rsID2").is_in(imp_snp_list)
+        )
+    else:
+        result = result.filter(pl.col("rsID1").is_in(rs_list))
+
+    # # 8) Rename MAF columns to ALT_AF and convert to Pandas
+    # final_pl = result.rename({
+        # "MAF1": "ALT_AF1",
+        # "MAF2": "ALT_AF2"
+    # })
+
+    # Convert to Pandas and reset index
+    final_pd = result.to_pandas().reset_index(drop=True)
+
+    # 9) Clean up
+    del ld_raw, ld_df, maf_df, tmp, merged, result 
+    gc.collect()
+
+    if final_pd.empty:
+        print("No SNPs found")
+
+    return final_pd
 
 def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome, imp_snp_list):
     # Fetch LD info data
@@ -307,80 +416,115 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome, im
 
 
 def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp_list):
+     # 1) Enforce minimum R2 threshold
     if R2_threshold < 0.8:
-        print("Pheno Scanner include data with a R2 threshold >= 0.8. The R2 threshold will be set to 0.8")
+        print("Pheno Scanner includes data with R2 ≥ 0.8. Setting R2_threshold = 0.8")
         R2_threshold = 0.8
 
-    print("Loading Pheno Scanner files...")
+    print("Building lazy plan for Pheno Scanner files...")
 
-    maf_file = 'ref/Pheno_Scanner/1000G.txt'
-    ld_file = f'ref/Pheno_Scanner/1000G_{population}/1000G_{population}_chr{chrom}.txt.gz'
-    population_map = {'EUR': 'eur', 'EAS': 'eas', 'AFR': 'afr', 'AMR': 'amr', 'SAS': 'sas'}
-
-    maf_pop = population_map.get(population, None)
+    # 2) Paths & pop mapping
+    maf_file = "ref/Pheno_Scanner/1000G.parquet"
+    ld_file  = f"ref/Pheno_Scanner/1000G_{population}/1000G_{population}_chr{chrom}.parquet"
+    pop_map  = {"EUR":"eur","EAS":"eas","AFR":"afr","AMR":"amr","SAS":"sas"}
+    maf_pop  = pop_map.get(population)
     if maf_pop is None:
         raise ValueError(f"Unsupported population: {population}")
 
-    # Filter MAF DataFrame using Dask
-    maf_df = dd.read_csv(maf_file, sep='\s+', blocksize=None,
-                         usecols=['hg19_coordinates', 'chr', 'rsid', maf_pop, 'a1', 'a2'],
-                         dtype={maf_pop: 'object'}
-                         )
-    maf_df = maf_df[(maf_df['chr'] == chrom) & (maf_df[maf_pop] != '-')]
-    maf_df[maf_pop] = maf_df[maf_pop].astype(float)
+    # 3) First MAF scan (for ref side → MAF1)
+    maf1_lazy = (
+        pl.scan_parquet(maf_file)
+          .select(["hg19_coordinates","chr","rsid", maf_pop, "a1","a2"])
+          .filter(
+              (pl.col("chr")==chrom) &
+              (pl.col(maf_pop) != "-")
+          )
+          .with_columns(pl.col(maf_pop).cast(pl.Float64))
+          .filter(pl.col(maf_pop) >= maf_threshold)
+          .rename({
+              "hg19_coordinates":"ref_hg19_coordinates",
+              "rsid":"ref_rsid",
+              maf_pop:"MAF1",
+              "a1":"ALT1",
+              "a2":"REF1",
+          })
+          .select(["ref_hg19_coordinates","ref_rsid","MAF1","ALT1","REF1"])
+    )
 
-    # # Calculate the frequency of the second allele for each population
-    # maf_df[str(maf_pop)+'2'] = 1 -  maf_df[maf_pop]
-    #
-    # maf_df[maf_pop] = maf_df[[maf_pop, str(maf_pop)+'2']].min(axis=1)
-    maf_df = maf_df[maf_df[maf_pop] >= float(maf_threshold)]
+    # 4) LD scan
+    ld_lazy = (
+        pl.scan_parquet(ld_file)
+          .select(["ref_hg19_coordinates","ref_rsid","rsid","r2","r","dprime"])
+          .filter(
+              (pl.col("ref_rsid") != pl.col("rsid")) &
+              (pl.col("r2") >= R2_threshold)
+          )
+    )
 
-    # Process LD DataFrame using Dask
-    ld_df = dd.read_csv(ld_file, sep='\s+', blocksize=None,
-                        usecols=['ref_hg19_coordinates', 'ref_rsid', 'rsid', 'r2', 'r', 'dprime'],
-                        dtype={'r2': 'float64', 'dprime': 'float64', 'r': 'float64'})
+    # 5) Second MAF scan (for query side → MAF2), keep `rsid` for join!
+    maf2_lazy = (
+        pl.scan_parquet(maf_file)
+          .select(["hg19_coordinates","chr","rsid", maf_pop, "a1","a2"])
+          .filter(
+              (pl.col("chr")==chrom) &
+              (pl.col(maf_pop) != "-")
+          )
+          .with_columns(pl.col(maf_pop).cast(pl.Float64))
+          .filter(pl.col(maf_pop) >= maf_threshold)
+          .rename({
+              "hg19_coordinates":"pos2(hg19)",
+              maf_pop:"MAF2",
+              "a1":"ALT2",
+              "a2":"REF2",
+          })
+          # note: we keep `rsid` here so we can join on it
+          .select(["pos2(hg19)","rsid","MAF2","ALT2","REF2"])
+    )
 
-    ld_df = ld_df[(ld_df['ref_rsid'] != ld_df['rsid']) & (ld_df['r2'] >= R2_threshold)]
-    merged_df = dd.merge(ld_df, maf_df.rename(
-        columns={'hg19_coordinates': 'ref_hg19_coordinates', 'rsid': 'ref_rsid', maf_pop: 'MAF1', 'a1': 'ALT1',
-                 'a2': 'REF1'}), on='ref_rsid')
-    merged_df = dd.merge(merged_df, maf_df.rename(columns={maf_pop: 'MAF2', 'a1': 'ALT2', 'a2': 'REF2'}), on='rsid')
+    # 6) Join the three pieces
+    joined = (
+        ld_lazy
+          .join(maf1_lazy, on="ref_rsid", how="inner")
+          .join(maf2_lazy, on="rsid",      how="inner")
+    )
 
-    # Convert to Pandas DataFrame by computing, to finalize and filter based on rs_list
-    final_result = merged_df.compute()  # Important: This triggers the actual computation
-    # print(final_result.head())
-    
-    # Clean up
-    del ld_df, maf_df 
+    # 7) Rename LD columns & the `rsid` from maf2 → final names
+    renamed = joined.rename({
+        "ref_rsid":"rsID1",
+        "rsid":"rsID2",
+        "ref_hg19_coordinates":"pos1(hg19)",
+        "r2":"R2",
+    })
+
+    # 8) Filter by user‐supplied SNP lists
+    filtered = renamed.filter(
+        pl.col("rsID2").is_in(rs_list) &
+        (pl.col("rsID1").is_in(imp_snp_list) if imp_snp_list else pl.lit(True))
+    )
+
+    # 9) Extract numeric coords
+    with_pos = filtered.with_columns([
+        pl.col("pos1(hg19)").str.extract(r".*:(\d+)$",1).cast(pl.Int64),
+        pl.col("pos2(hg19)").str.extract(r".*:(\d+)$",1).cast(pl.Int64),
+    ])
+
+    # 10) Final projection/order
+    final_lazy = with_pos.select([
+        "rsID1","pos1(hg19)","rsID2","dprime",
+        "pos2(hg19)","R2","r",
+        "MAF1","MAF2","ALT1","REF1","ALT2","REF2",
+    ])
+
+    # 11) Execute in streaming, collect to Polars → pandas
+    final_pl = final_lazy.collect()
+    final_pd = final_pl.to_pandas()
+
+    # 12) Cleanup
     gc.collect()
-    final_result = final_result.rename(
-        columns={'ref_rsid': 'rsID1', 'rsid': 'rsID2', 'ref_hg19_coordinates_x': 'pos1(hg19)',
-                 'hg19_coordinates': 'pos2(hg19)', 'r2': 'R2'})
-    final_result = final_result[
-        ['rsID1', 'pos1(hg19)', 'rsID2', 'dprime', 'pos2(hg19)', 'R2', 'r', 'MAF1', 'MAF2', 'ALT1', 'REF1', 'ALT2',
-         'REF2']]
-
-    if imp_snp_list:
-        final_result = final_result[final_result['rsID2'].isin(rs_list) & final_result['rsID1'].isin(imp_snp_list)]
-
-    else:
-        final_result = final_result[final_result['rsID2'].isin(rs_list)]
-    if final_result.empty:
+    if final_pd.empty:
         print("No SNPs found")
 
-    # Split the 'location' column at ':' and keep the part after it
-    final_result['pos1(hg19)'] = final_result['pos1(hg19)'].str.split(':').str[1]
-    final_result['pos2(hg19)'] = final_result['pos2(hg19)'].str.split(':').str[1]
-    final_result.reset_index(inplace=True, drop=True)
-    # final_result.to_csv('LD_info_chr' + str(chrom) + '.txt', sep="\t", index=False)
-   # final_result.to_csv('LD_info_Pheno_Scanner_chr_' + str(chrom) + '.txt', sep="\t", index=False)
-    final_result.rename(columns={"MAF1": "ALT_AF1", "MAF2": "ALT_AF2"}).to_csv(
-        'LD_info_Pheno_Scanner_chr_' + str(chrom) + '.txt', sep="\t", index=False
-    )
-    
-    
-    return final_result
-
+    return final_pd
 
 def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromosome, imp_snp_list):
     # Fetch LD info data
@@ -487,87 +631,86 @@ def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromoso
     return out_df
 
 
-import dask.dataframe as dd
-import gc
+ 
 
 def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp_list=None):
     print("Loading TOP-LD files...")
     
-    # File paths
-    maf_file = f'ref/TOP_LD/{population}/SNV/{population}_chr{chrom}_no_filter_0.2_1000000_info_annotation.csv.gz'
-    ld_file  = f'ref/TOP_LD/{population}/SNV/{population}_chr{chrom}_no_filter_0.2_1000000_LD.csv.gz'
-
-    # Load and filter MAF DataFrame
-    maf_df = dd.read_csv(maf_file, blocksize=64_000_000, usecols=['Position', 'rsID', 'MAF', 'REF', 'ALT'])
-
-    # Early filtering by MAF threshold
-    maf_df = maf_df[maf_df['MAF'] >= maf_threshold]
-
-    # If imp_snp_list is provided, filter maf_df accordingly
+     # 1) Combine rsIDs up‐front
     if imp_snp_list:
-        all_rsids = set(rs_list) | set(imp_snp_list)
-        maf_df = maf_df[maf_df['rsID'].isin(all_rsids)]
+        all_rsids = list(set(rs_list) | set(imp_snp_list))
     else:
-        maf_df = maf_df[maf_df['rsID'].isin(rs_list)]
+        all_rsids = rs_list
 
-    # Save intermediate version (optional performance step)
-    #maf_parquet_path = f'ref/TOP_LD/{population}/SNV/maf_df_chr{chrom}.parquet'
-    #maf_df.to_parquet(maf_parquet_path)
-    #maf_df = dd.read_parquet(maf_parquet_path, blocksize=64_000_000)
-
-    # Load and filter LD DataFrame
-    ld_df = dd.read_csv(ld_file, blocksize=64_000_000, usecols=['SNP1', 'SNP2', 'R2', '+/-corr', 'Dprime'])
-    ld_df = ld_df[ld_df['R2'] >= R2_threshold]
-
-    # Early filtering of LD DataFrame based on maf SNPs
-    maf_pos_df = maf_df[['Position', 'rsID']].rename(columns={'Position': 'SNP'})
-    maf_positions = maf_pos_df['SNP']
-
-    # Load just positions to filter LD
-    if imp_snp_list:
-        pos_df = maf_df[maf_df['rsID'].isin(imp_snp_list)][['Position']]
-        imp_positions = pos_df['Position']
-        ld_df = ld_df[ld_df['SNP1'].isin(maf_positions) & ld_df['SNP2'].isin(imp_positions)]
-    else:
-        ld_df = ld_df[ld_df['SNP1'].isin(maf_positions)]
-
-    #ld_parquet_path = f'ref/TOP_LD/{population}/SNV/ld_df_chr{chrom}.parquet'
-    #ld_df.to_parquet(ld_parquet_path)
-    #ld_df = dd.read_parquet(ld_parquet_path, blocksize=64_000_000)
-
-    # Harmonize column names for merge
-    maf_df = maf_df.rename(columns={'Position': 'SNP', 'rsID': 'rsID', 'MAF': 'MAF'})
-
-    merged_df = dd.merge(ld_df, maf_df.rename(
-        columns={'SNP': 'SNP1', 'rsID': 'rsID1', 'MAF': 'MAF1', 'REF': 'REF1', 'ALT': 'ALT1'}), on='SNP1')
-    merged_df = dd.merge(merged_df, maf_df.rename(
-        columns={'SNP': 'SNP2', 'rsID': 'rsID2', 'MAF': 'MAF2', 'REF': 'REF2', 'ALT': 'ALT2'}), on='SNP2')
-
-    # Select and rename desired columns
-    final_df = merged_df[
-        ['SNP1', 'SNP2', 'R2', '+/-corr', 'Dprime', 'rsID1', 'rsID2', 'MAF1', 'MAF2', 'REF1', 'ALT1', 'REF2', 'ALT2']]
-    final_df = final_df.rename(columns={'SNP1': 'pos1', 'SNP2': 'pos2'})
-
-    # Final filter based on rsIDs
-    if imp_snp_list:
-        result = final_df[final_df['rsID1'].isin(rs_list) & final_df['rsID2'].isin(imp_snp_list)].compute()
-    else:
-        result = final_df[final_df['rsID1'].isin(rs_list)].compute()
-
-    if result.empty:
-        print("No SNPs found")
-
-    result.reset_index(inplace=True, drop=True)
-
-    result.rename(columns={"MAF1": "ALT_AF1", "MAF2": "ALT_AF2"}).to_csv(
-        f'LD_info_TOP_LD_chr{chrom}.txt', sep="\t", index=False
+    # 2) Lazy‐scan the MAF file, project only needed cols, then filter
+    maf_path = (
+        f"ref/TOP_LD/{population}/SNV/"
+        f"{population}_chr{chrom}_no_filter_0.2_1000000_info_annotation.parquet"
+    )
+    maf_lazy = (
+        pl.scan_parquet(maf_path)
+          .select(["Position", "rsID", "MAF", "REF", "ALT"])
+          .filter(pl.col("MAF") >= maf_threshold)
+          .filter(pl.col("rsID").is_in(all_rsids))
     )
 
-    # Clean up
-    del ld_df, maf_df, final_df
+    # 3) Lazy‐scan the LD file, project and filter by R²
+    ld_path = (
+        f"ref/TOP_LD/{population}/SNV/"
+        f"{population}_chr{chrom}_no_filter_0.2_1000000_LD.parquet"
+    )
+    ld_lazy = (
+        pl.scan_parquet(ld_path)
+          .select(["SNP1", "SNP2", "R2", "+/-corr", "Dprime"])
+          .filter(pl.col("R2") >= R2_threshold)
+    )
+
+    # 4) Prepare two MAF views for joining
+    maf1 = maf_lazy.rename({
+        "Position": "SNP1", "rsID": "rsID1", "MAF": "MAF1",
+        "REF":      "REF1", "ALT": "ALT1"
+    })
+    maf2 = maf_lazy.rename({
+        "Position": "SNP2", "rsID": "rsID2", "MAF": "MAF2",
+        "REF":      "REF2", "ALT": "ALT2"
+    })
+
+    # 5) Join LD ↔ MAF1 ↔ MAF2 all lazily
+    joined = (
+        ld_lazy
+          .join(maf1, on="SNP1", how="inner")
+          .join(maf2, on="SNP2", how="inner")
+    )
+
+    # 6) If you provided an imp_snp_list, filter rsID roles
+    if imp_snp_list:
+        joined = joined.filter(
+            (pl.col("rsID1").is_in(rs_list)) &
+            (pl.col("rsID2").is_in(imp_snp_list))
+        )
+
+    # 7) Select + rename final output columns
+    final_lazy = joined.select([
+        pl.col("SNP1").alias("pos1"),
+        pl.col("SNP2").alias("pos2"),
+        "R2", "+/-corr", "Dprime",
+        "rsID1", "rsID2",
+        "MAF1", "MAF2",
+        "REF1", "ALT1", "REF2", "ALT2"
+    ])
+
+    # 8) Execute once in streaming mode (__very__ memory‐efficient)
+   
+    result = final_lazy.collect()
+
+    if result.is_empty():
+        print("No SNPs found.")
+
+    # 9) Cleanup
+    del maf_lazy, maf1, maf2, ld_lazy, joined, final_lazy
     gc.collect()
 
-    return result
+    return result.to_pandas()
 
 def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome, imp_snp_list):
     # Fetch LD info data
@@ -721,10 +864,10 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_data = pd.concat([final_data, data], ignore_index=True)
             print(f"Total : {len(final_data)} SNPs")
 
-            final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
+            #final_data.to_csv(file_path+"_imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
-            print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
-            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
+            #print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
+            #print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
@@ -737,7 +880,14 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
             # Concatenate the two DataFrames back together. You might consider resetting the index.
             final_data = pd.concat([final_df_miss, final_df_init]).reset_index(drop=True)
-            final_data.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
+            # Step 1: Identify SNPs that exist both as imputed (1) and non-imputed (0)
+            duplicate_snps = final_data[final_data['SNP'].duplicated(keep=False)]['SNP'].unique()
+            
+            # Step 2: Filter the data
+            # Keep non-imputed rows for duplicate SNPs and keep all other rows as they are
+            final_data = final_data[~final_data['SNP'].isin(duplicate_snps) | (final_data['imputed'] == 0)]
+            
+            final_data.to_csv(file_path+"_imputation_results_chr_all.txt", sep="\t", index=False)
             print("Check 'imputation_results_chr_all.txt' for results")
 
     if ref_panel == 'Pheno_Scanner':
@@ -767,7 +917,14 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
             # Concatenate the two DataFrames back together. You might consider resetting the index.
             final_data = pd.concat([final_df_miss, final_df_init]).reset_index(drop=True)
-            final_data.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
+            # Step 1: Identify SNPs that exist both as imputed (1) and non-imputed (0)
+            duplicate_snps = final_data[final_data['SNP'].duplicated(keep=False)]['SNP'].unique()
+            
+            # Step 2: Filter the data
+            # Keep non-imputed rows for duplicate SNPs and keep all other rows as they are
+            final_data = final_data[~final_data['SNP'].isin(duplicate_snps) | (final_data['imputed'] == 0)]
+            
+            final_data.to_csv(file_path+"_imputation_results_chr_all.txt", sep="\t", index=False)
             print("Check 'imputation_results_chr_all.txt' for results")
 
     if ref_panel == 'Hap_Map':
@@ -781,10 +938,10 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_data = pd.concat([final_data, data], ignore_index=True)
             print(f"Total : {len(final_data)} SNPs")
 
-            final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
+            #final_data.to_csv(file_path+"_imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
-            print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
-            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
+           # print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
+           # print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
@@ -797,7 +954,15 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
             # Concatenate the two DataFrames back together. You might consider resetting the index.
             final_data = pd.concat([final_df_miss, final_df_init]).reset_index(drop=True)
-            final_data.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
+            
+            # Step 1: Identify SNPs that exist both as imputed (1) and non-imputed (0)
+            duplicate_snps = final_data[final_data['SNP'].duplicated(keep=False)]['SNP'].unique()
+            
+            # Step 2: Filter the data
+            # Keep non-imputed rows for duplicate SNPs and keep all other rows as they are
+            final_data = final_data[~final_data['SNP'].isin(duplicate_snps) | (final_data['imputed'] == 0)]
+            
+            final_data.to_csv(file_path+"_imputation_results_chr_all.txt", sep="\t", index=False)
             print("Check 'imputation_results_chr_all.txt' for results")
 
     if ref_panel == 'all_panels':
@@ -868,7 +1033,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
                 final_data = final_data.loc[final_data.groupby('SNP')['R2'].idxmax()]
             else:
                 final_data = final_data.groupby('SNP').apply(lambda x: x.loc[x['R2'].idxmax()]).reset_index(drop=True)
-            print(len(final_data))
+            #print(len(final_data))
 
             data = pd.read_csv(file_path, sep="\t")
             data['z'] = data['BETA'] / data['SE']
@@ -880,7 +1045,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
             print(f"Total : {len(final_data)} SNPs")
 
-            final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
+            #final_data.to_csv(file_path+"_imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
             print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
             print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
@@ -896,5 +1061,13 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
             # Concatenate the two DataFrames back together. You might consider resetting the index.
             final_data = pd.concat([final_df_miss, final_df_init]).reset_index(drop=True)
-            final_data.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
+            
+            # Step 1: Identify SNPs that exist both as imputed (1) and non-imputed (0)
+            duplicate_snps = final_data[final_data['SNP'].duplicated(keep=False)]['SNP'].unique()
+            
+            # Step 2: Filter the data
+            # Keep non-imputed rows for duplicate SNPs and keep all other rows as they are
+            final_data = final_data[~final_data['SNP'].isin(duplicate_snps) | (final_data['imputed'] == 0)]
+            
+            final_data.to_csv(file_path+"_imputation_results_chr_all.txt", sep="\t", index=False)
             print("Check 'imputation_results_chr_all.txt' for results")
