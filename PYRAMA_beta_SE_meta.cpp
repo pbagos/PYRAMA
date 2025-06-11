@@ -1,14 +1,13 @@
 #include <iostream>
 #include <fstream>
-#include <sstream>
+#include <string>
 #include <vector>
 #include <unordered_map>
-#include <string>
-#include <tuple>
 #include <cmath>
 #include <algorithm>
 #include <numeric>
-#include <iomanip> // For output precision
+#include <iomanip>
+#include <charconv>         // for std::from_chars if you prefer
 #include <boost/math/distributions/chi_squared.hpp>
 #include <boost/math/distributions/normal.hpp>
 
@@ -16,293 +15,235 @@ using namespace std;
 using boost::math::chi_squared;
 using boost::math::normal;
 
-// Define a struct to hold SNP data
-struct SNPData {
-    string snp;
-    int chr;
-    int bp;
-    double beta;
-    double se;
-};
+// Pre‐construct our standard normal so we don’t rebuild it each call:
+namespace {
+    const normal NORMAL_DIST(0.0, 1.0);
+}
 
-// Function to calculate meta-analysis statistics.
-// Returns a 9‐element tuple (we keep computing Z internally, but will not print it):
-// (p_random, se_random, z_random, mu_random, I2, p_Q, p_fixed, mu_fixed, z_fixed)
-tuple<double, double, double, double, double, double, double, double, double>
-altmeta(const vector<double>& y1, const vector<double>& s2) {
-    size_t n = y1.size();
-
-    // If no studies, return all NaN
+// Computes both fixed‐ and random‐effects meta‐analysis; exactly as before,
+// but renamed inputs and reusing the global NORMAL_DIST.
+tuple<
+    double, // p_random
+    double, // se_random
+    double, // z_random
+    double, // mu_random
+    double, // I2
+    double, // p_Q
+    double, // p_fixed
+    double, // mu_fixed
+    double  // z_fixed
+> meta_analysis(const vector<double>& beta,
+                const vector<double>& se)
+{
+    size_t n = beta.size();
     if (n == 0) {
-        return make_tuple(
-            NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN
-        );
+        return make_tuple(NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN);
     }
-
-    // If exactly one study, random and fixed coincide
     if (n == 1) {
-        double mu = y1[0];
-        double se = s2[0];
-        double z = (se > 0 ? mu / se : 0.0);
-        normal normal_dist(0.0, 1.0);
-        double p = 2.0 * cdf(complement(normal_dist, fabs(z)));
-
-        return make_tuple(
-            p,     // p_random
-            se,    // se_random
-            z,     // z_random
-            mu,    // mu_random  → BETA
-            0.0,   // I_squared
-            NAN,   // p_Q (undefined for single study)
-            p,     // p_fixed
-            mu,    // mu_fixed  → BETA(FE)
-            z      // z_fixed
-        );
+        double mu = beta[0];
+        double se0 = se[0];
+        double z = se0 > 0 ? mu / se0 : 0.0;
+        double p = 2.0 * cdf(complement(NORMAL_DIST, fabs(z)));
+        return make_tuple(p, se0, z, mu, 0.0, NAN, p, mu, z);
     }
 
-    // More than one study: compute variances and fixed weights
-    vector<double> variances(n), weights_fixed(n), weights_random(n);
+    // Precompute variances and fixed weights
+    vector<double> var(n), w_fix(n);
     for (size_t i = 0; i < n; ++i) {
-        variances[i] = s2[i] * s2[i];
-        weights_fixed[i] = (variances[i] > 0 ? 1.0 / variances[i] : 0.0);
+        var[i]    = se[i]*se[i];
+        w_fix[i]  = var[i] > 0.0 ? 1.0/var[i] : 0.0;
+    }
+    double sum_w_fix = accumulate(w_fix.begin(), w_fix.end(), 0.0);
+    if (sum_w_fix == 0.0) {
+        return make_tuple(NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN);
     }
 
-    double weights_sum_fixed = accumulate(
-        weights_fixed.begin(), weights_fixed.end(), 0.0
-    );
-    if (weights_sum_fixed == 0.0) {
-        // All variances zero or invalid
-        return make_tuple(
-            NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN
-        );
-    }
+    // Fixed‐effect
+    double mu_fix = inner_product(w_fix.begin(), w_fix.end(), beta.begin(), 0.0) / sum_w_fix;
+    double se_fix = sqrt(1.0 / sum_w_fix);
+    double z_fix  = se_fix > 0 ? mu_fix / se_fix : 0.0;
+    double p_fix  = 2.0 * cdf(complement(NORMAL_DIST, fabs(z_fix)));
 
-    // Fixed‐effect combined mean (mu_fixed) and its SE
-    double mu_fixed = inner_product(
-        weights_fixed.begin(), weights_fixed.end(),
-        y1.begin(), 0.0
-    ) / weights_sum_fixed;
-    double se_fixed = sqrt(1.0 / weights_sum_fixed);
-    double z_fixed = (se_fixed > 0 ? mu_fixed / se_fixed : 0.0);
-    normal normal_dist(0.0, 1.0);
-    double p_fixed = 2.0 * cdf(complement(normal_dist, fabs(z_fixed)));
-
-    // Cochran's Q for heterogeneity
+    // Cochran's Q
     double Q = 0.0;
     for (size_t i = 0; i < n; ++i) {
-        Q += weights_fixed[i] * pow(y1[i] - mu_fixed, 2);
+        double d = beta[i] - mu_fix;
+        Q += w_fix[i] * d * d;
     }
-
-    double df = static_cast<double>(n - 1);
+    double df = double(n - 1);
     if (df <= 0 || isnan(Q)) {
-        // Not enough degrees of freedom
-        return make_tuple(
-            NAN,       // p_random
-            NAN,       // se_random
-            NAN,       // z_random
-            NAN,       // mu_random
-            NAN,       // I_squared
-            NAN,       // p_Q
-            p_fixed,   // p_fixed
-            mu_fixed,  // mu_fixed → BETA(FE)
-            z_fixed    // z_fixed
-        );
+        return make_tuple(NAN,NAN,NAN,NAN,NAN,NAN,p_fix,mu_fix,z_fix);
     }
 
-    // Between‐study variance tau^2 (DerSimonian‐Laird)
+    // DerSimonian–Laird tau^2
     double sum_w2 = 0.0;
-    for (double w : weights_fixed) {
-        sum_w2 += w * w;
-    }
-    double tau_squared = max(
-        0.0,
-        (Q - df) / (weights_sum_fixed - (sum_w2 / weights_sum_fixed))
-    );
+    for (double w : w_fix) sum_w2 += w*w;
+    double tau2 = max(0.0, (Q - df) / (sum_w_fix - sum_w2/sum_w_fix));
 
-    // Compute random‐effects weights
+    // Random‐effects weights
+    vector<double> w_rand(n);
     for (size_t i = 0; i < n; ++i) {
-        weights_random[i] = 1.0 / (variances[i] + tau_squared);
+        w_rand[i] = 1.0 / (var[i] + tau2);
+    }
+    double sum_w_rand = accumulate(w_rand.begin(), w_rand.end(), 0.0);
+    if (sum_w_rand == 0.0) {
+        return make_tuple(NAN,NAN,NAN,NAN,NAN,NAN,p_fix,mu_fix,z_fix);
     }
 
-    double weights_sum_random = accumulate(
-        weights_random.begin(), weights_random.end(), 0.0
-    );
-    if (weights_sum_random == 0.0) {
-        // Cannot compute random‐effects
-        return make_tuple(
-            NAN,       // p_random
-            NAN,       // se_random
-            NAN,       // z_random
-            NAN,       // mu_random
-            NAN,       // I_squared
-            NAN,       // p_Q
-            p_fixed,   // p_fixed
-            mu_fixed,  // mu_fixed → BETA(FE)
-            z_fixed    // z_fixed
-        );
-    }
+    double mu_rand = inner_product(w_rand.begin(), w_rand.end(), beta.begin(), 0.0) / sum_w_rand;
+    double se_rand = sqrt(1.0 / sum_w_rand);
+    double z_rand  = se_rand > 0 ? mu_rand / se_rand : 0.0;
+    double p_rand  = 2.0 * cdf(complement(NORMAL_DIST, fabs(z_rand)));
 
-    // Random‐effects combined mean (mu_random) and its SE
-    double mu_random = inner_product(
-        weights_random.begin(), weights_random.end(),
-        y1.begin(), 0.0
-    ) / weights_sum_random;
-    double se_random = sqrt(1.0 / weights_sum_random);
-    double z_random = (se_random > 0 ? mu_random / se_random : 0.0);
-    double p_random = 2.0 * cdf(complement(normal_dist, fabs(z_random)));
-
-    // Heterogeneity I^2 and p_Q
-    double I_squared = (Q > df) ? ((Q - df) / Q) * 100.0 : 0.0;
-    chi_squared chi_dist(df);
-    double p_Q = cdf(complement(chi_dist, Q));
+    double I2    = (Q > df ? ((Q - df)/Q) * 100.0 : 0.0);
+    chi_squared chi2(df);
+    double p_Q   = cdf(complement(chi2, Q));
 
     return make_tuple(
-        p_random,  // p_random
-        se_random, // se_random
-        z_random,  // z_random
-        mu_random, // mu_random → BETA
-        I_squared, // I^2
-        p_Q,       // heterogeneity p‐value
-        p_fixed,   // p_fixed
-        mu_fixed,  // mu_fixed → BETA(FE)
-        z_fixed    // z_fixed
+        p_rand, se_rand, z_rand, mu_rand,
+        I2, p_Q, p_fix, mu_fix, z_fix
     );
 }
 
-// Main function to read data and process meta-analysis
-void processFile(const string& filename) {
-    ifstream file(filename);
-    if (!file.is_open()) {
-        cerr << "Error: Could not open file " << filename << endl;
+// Holds the accumulating data for each SNP
+struct Accum {
+    int    chr, bp;
+    vector<double> beta, se;
+};
+
+void process_files(const vector<string>& filenames) {
+    if (filenames.empty()) {
+        cerr << "Error: no input files provided.\n";
         return;
     }
 
-    string line;
-    getline(file, line); // Read the header
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
 
-    // Parse header to find indices of required columns
-    istringstream headerStream(line);
-    vector<string> headerColumns;
-    string column;
-    while (headerStream >> column) {
-        headerColumns.push_back(column);
-    }
+    // Our per‐SNP accumulator:
+    unordered_map<string, Accum> snp_map;
+    // Reserve to avoid rehashing if you have a rough idea of SNP count:
+    // snp_map.reserve(1 << 20);
 
-    // Map column names to indices
-    unordered_map<string, int> columnIndices;
-    for (size_t i = 0; i < headerColumns.size(); ++i) {
-        columnIndices[headerColumns[i]] = i;
-    }
+    // Required column names:
+    static const array<string,5> req = { "SNP","CHR","BP","BETA","SE" };
+    array<int,5> idx;  // positions of those columns in the current file
 
-    // Ensure required columns exist
-    vector<string> requiredColumns = { "SNP", "CHR", "BP", "BETA", "SE" };
-    for (const auto& col : requiredColumns) {
-        if (columnIndices.find(col) == columnIndices.end()) {
-            cerr << "Error: Required column " << col << " not found in the input file." << endl;
+    for (auto const& fn : filenames) {
+        ifstream in(fn);
+        if (!in.is_open()) {
+            cerr << "Error: cannot open '" << fn << "'\n";
             return;
         }
-    }
 
-    vector<SNPData> snpData;
-
-    // Read and store each data line (tab-delimited)
-    while (getline(file, line)) {
-        istringstream lineStream(line);
-        vector<string> rowData;
-        string value;
-
-        while (getline(lineStream, value, '\t')) {
-            rowData.push_back(value);
+        string header;
+        getline(in, header);
+        if (header.empty()) {
+            cerr << "Error: '" << fn << "' is empty\n";
+            return;
         }
 
-        // Basic sanity check: skip incomplete lines
-        if (rowData.size() < headerColumns.size()) continue;
+        // Split header on tabs (manual, faster than istringstream)
+        vector<string> cols;
+        cols.reserve(16);
+        size_t start = 0, pos;
+        while ((pos = header.find('\t', start)) != string::npos) {
+            cols.emplace_back(header, start, pos - start);
+            start = pos + 1;
+        }
+        cols.emplace_back(header, start);
 
-        SNPData snp;
-        snp.snp  = rowData[columnIndices["SNP"]];
-        snp.chr  = stoi(rowData[columnIndices["CHR"]]);
-        snp.bp   = stoi(rowData[columnIndices["BP"]]);
-        snp.beta = stod(rowData[columnIndices["BETA"]]);
-        snp.se   = stod(rowData[columnIndices["SE"]]);
+        // Find our required columns
+        for (int i = 0; i < 5; ++i) {
+            auto it = find(cols.begin(), cols.end(), req[i]);
+            if (it == cols.end()) {
+                cerr << "Error: missing column '" << req[i]
+                     << "' in " << fn << "\n";
+                return;
+            }
+            idx[i] = int(it - cols.begin());
+        }
 
-        snpData.push_back(snp);
+        // Parse each line
+        string line;
+        vector<string> fields;
+        fields.reserve(cols.size());
+        while (getline(in, line)) {
+            if (line.empty()) continue;
+            // split on tabs:
+            fields.clear();
+            size_t s = 0, p;
+            while ((p = line.find('\t', s)) != string::npos) {
+                fields.emplace_back(line, s, p - s);
+                s = p + 1;
+            }
+            fields.emplace_back(line, s);
+
+            if ((int)fields.size() < (int)cols.size()) continue;
+
+            const string& snp = fields[idx[0]];
+            // fast parse chr, bp, beta, se:
+            int    chr = strtol(fields[idx[1]].c_str(), nullptr, 10);
+            int    bp  = strtol(fields[idx[2]].c_str(), nullptr, 10);
+            double b   = strtod(fields[idx[3]].c_str(), nullptr);
+            double se  = strtod(fields[idx[4]].c_str(), nullptr);
+
+            auto& acc = snp_map[snp];
+            if (acc.beta.empty()) {
+                acc.chr = chr;
+                acc.bp  = bp;
+            }
+            acc.beta.push_back(b);
+            acc.se.push_back(se);
+        }
     }
 
-    // Group betas and ses by SNP
-    unordered_map<string, vector<double>> beta_map, se_map;
-    unordered_map<string, int> chr_map, bp_map;
-    for (const auto& snp : snpData) {
-        beta_map[snp.snp].push_back(snp.beta);
-        se_map[snp.snp].push_back(snp.se);
-        chr_map[snp.snp] = snp.chr;
-        bp_map[snp.snp]  = snp.bp;
-    }
-
-    // ------------- CHANGED HEADER -------------
-    // Print new header WITH an N column:
-    // SNP  CHR  BP  N  P  SE  BETA  I2  pQ  BETA(FE)  P(FE)
+    // Output header:
     cout << "SNP\tCHR\tBP\tN\t"
-            "P\tSE\tBETA\tI2\tpQ\t"
-            "BETA(FE)\tP(FE)"
-         << endl;
+         << "P\tSE\tBETA\tI2\tpQ\t"
+         << "BETA(FE)\tP(FE)\n";
 
-    // Loop over each SNP
-    for (const auto& kv : beta_map) {
-        const string& snp_name = kv.first;
-        const auto& beta_list = kv.second;
-        const auto& se_list   = se_map.at(snp_name);
-        int chr = chr_map[snp_name];
-        int bp  = bp_map[snp_name];
+    // To print sorted by SNP name:
+    vector<string> keys;
+    keys.reserve(snp_map.size());
+    for (auto const& kv : snp_map) keys.push_back(kv.first);
+    sort(keys.begin(), keys.end());
 
-        // ------------- COMPUTE N -------------
-        int N = static_cast<int>(beta_list.size());
+    // Compute & print
+    cout << scientific << setprecision(4);
+    for (auto const& snp : keys) {
+        auto const& A = snp_map[snp];
+        auto stats = meta_analysis(A.beta, A.se);
 
-        auto result = altmeta(beta_list, se_list);
-        double p_random   = get<0>(result);
-        double se_random  = get<1>(result);
-        double mu_random  = get<3>(result); // → BETA (random)
-        double I2         = get<4>(result);
-        double p_Q        = get<5>(result);
-        double p_fixed    = get<6>(result);
-        double mu_fixed   = get<7>(result); // → BETA(FE)
+        double p_rand  = get<0>(stats);
+        double se_rand = get<1>(stats);
+        double mu_rand = get<3>(stats);
+        double I2      = get<4>(stats);
+        double pQ      = get<5>(stats);
+        double p_fix   = get<6>(stats);
+        double mu_fix  = get<7>(stats);
 
-        // Output fields in the order:
-        // snp, chr, bp, N,
-        // p_random, se_random, mu_random, I2, p_Q,
-        // mu_fixed (BETA(FE)), p_fixed (P(FE))
-        cout << snp_name << "\t"
-             << chr       << "\t"
-             << bp        << "\t"
-             << N         << "\t";  // <-- print N here
-
-        // Random‐effect p (scientific, precision 4)
-        cout << scientific << setprecision(4) << p_random << "\t";
-
-        // Then default formatting for the rest:
-        cout << defaultfloat
-             << se_random  << "\t"
-             << mu_random  << "\t"
-             << I2         << "\t";
-
-        // Heterogeneity p_Q (scientific, precision 4)
-        cout << scientific << setprecision(4) << p_Q << "\t";
-
-        // Fixed‐effect columns (contiguous):
-        // BETA(FE), P(FE)
-        cout << defaultfloat
-             << mu_fixed << "\t";
-
-        cout << scientific << setprecision(4) << p_fixed << endl;
+        cout << snp << '\t'
+             << A.chr << '\t'
+             << A.bp  << '\t'
+             << int(A.beta.size()) << '\t'
+             << p_rand << '\t'
+             << defaultfloat << se_rand << '\t'
+             << mu_rand << '\t'
+             << I2      << '\t'
+             << scientific << pQ << '\t'
+             << defaultfloat << mu_fix << '\t'
+             << scientific << p_fix << "\n";
     }
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        cerr << "Usage: " << argv[0] << " <input_file>" << endl;
+    if (argc < 2) {
+        cerr << "Usage: " << argv[0]
+             << " <input1> [<input2> ...]\n";
         return 1;
     }
-
-    string filename = argv[1];
-    processFile(filename);
+    vector<string> files(argv+1, argv+argc);
+    process_files(files);
     return 0;
 }
