@@ -39,10 +39,11 @@ A Python tool for robust analysis and meta-analysis of Genome Wide Association S
  
  - A Linux-based OS (e.g. Ubuntu 20.04 LTS)
 - Python 3.10+  
-- [pandas](https://pandas.pydata.org/)  
-- `meta_analysis`, `cont_meta_analysis`, `fast_robust_analysis`, `bayesian`, `bivariate`, `bivariate_gwas` modules (included in this package).  
-- `pred_ld.py` (for imputation)  
-- `pyrama_beta_se_meta` binary or script (for beta/SE meta-analysis)  
+- Requirements specified in requirements.txt
+- `pyrama_beta_se_meta` binary or script (for beta/SE meta-analysis), compile :  g++ -std=c++11 -O2 -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp
+
+
+
 ---
 
 ## Installation
