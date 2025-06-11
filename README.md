@@ -90,7 +90,7 @@ Common options:
 | `--population`                | Population code (e.g. EUR, AFR) for imputation                                              |
 | `--maf`                       | Minor allele frequency cutoff for imputation                                                |
 | `--ref`                       | Reference panel identifier (e.g. TOP_LD, Pheno_Scanner, Hap_Map, all_panels[default])       |
-| `--missing_threshold`         | Fraction of studies that must include a SNP (default 0.5). When set to 0, it performs  immputation in all variants|
+| `--missing_threshold`         | Fraction of studies that must include a SNP (default 0.5). When set to 0, it performs  imputation in all given variants|
 | `-n`, `--nthreads`            | Number of parallel threads for file I/O (default: 1)                                        |
 
 #### Case 2: Direct BETA/SE (No Imputation)
