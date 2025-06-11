@@ -127,7 +127,7 @@ Common options:
 | `--robust_method`             | MIN, MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
 | `--type_of_effect`            | FIXED or RANDOM                                                                             |
 | `--approximate_max`           | YES or NO                                                                                   |
-| `--bayesian_meta`             | YES to run Bayesian meta-analysis (default NO)                                              |
+| `--bayesian_meta`             | YES to run Bayesian meta-analysis (default NO). Available only for Discrete Phenotype Input |
 | `--imputation`                | Summary statistics imputation of missing SNPs  (only for BETA/SE input)                     |
 | `--r2threshold`               | R² threshold for  imputation                                                                |
 | `--population`                | Population code (e.g. EUR, AFR) for imputation                                              |
@@ -152,21 +152,21 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
 
 - **Standard**  
   ```bash
-  python pyrama.py     --i counts1.tsv counts2.txt     --o standard_meta.txt     --inheritance_model DOMINANT     --effect_size_type CATT     --robust_method MIN     --type_of_effect FIXED  
+  python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]    --o standard_meta.txt     --inheritance_model DOMINANT     --effect_size_type CATT     --robust_method MIN     --type_of_effect FIXED  
   ```
 - **Fast Robust**  
   ```bash
-  python pyrama.py     --i counts1.tsv counts2.txt     --o fast_meta.txt     --inheritance_model ADDITIVE     --effect_size_type OR     --robust_method FAST    
+  python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]    --o fast_meta.txt     --inheritance_model ADDITIVE     --effect_size_type OR     --robust_method FAST    
   ```
 - **Bayesian**  
   ```bash
-  python pyrama.py     --i counts1.tsv counts2.txt     --o bayes_meta.txt     --bayesian_meta YES     --inheritance_model ADDITIVE     --effect_size_type OR     
+  python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]     --o bayes_meta.txt     --bayesian_meta YES     --inheritance_model ADDITIVE     --effect_size_type OR     
   ```
 
 #### Case 3: Continuous Phenotype
 
 ```bash
-python pyrama.py   --i cont1.tsv cont2.tsv cont3.txt   --o continuous_meta.txt   --inheritance_model ADDITIVE   --robust_method MAX   --type_of_effect RANDOM
+python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o continuous_meta.txt   --inheritance_model ADDITIVE   --robust_method MAX   --type_of_effect RANDOM
 ```
  
 
