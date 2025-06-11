@@ -50,8 +50,8 @@ A Python tool for robust analysis and meta-analysis of Genome Wide Association S
 
 1. Clone the repository:  
    ```bash
-   git clone https://github.com/yourusername/pyrama.git
-   cd pyrama
+   git clone https://github.com/pbagos/PYRAMA.git
+   cd PYRAMA
    ```
 2. (Optional) Create and activate a virtual environment:  
    ```bash
