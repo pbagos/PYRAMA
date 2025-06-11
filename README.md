@@ -80,17 +80,17 @@ Common options:
 |-------------------------------|---------------------------------------------------------------------------------------------|
 | `--inheritance_model`         | ADDITIVE, RECESSIVE, or DOMINANT                                                            |
 | `--effect_size_type`          | OR (odds ratio) or CATT (Cochran–Armitage trend test)                                       |
-| `--robust_method`             | MIN, MAX, MERT, or FAST                                                                     |
+| `--robust_method`             | MIN, MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
 | `--type_of_effect`            | FIXED or RANDOM                                                                             |
 | `--approximate_max`           | YES or NO                                                                                   |
 | `--biv_ma`                    | YES to force bivariate meta-analysis (default NO)                                           |
 | `--bayesian_meta`             | YES to run Bayesian meta-analysis (default NO)                                              |
-| `--imputation`                | Enable imputation of missing SNPs                                                           |
-| `--r2threshold`               | R² threshold for LD‐based imputation                                                        |
+| `--imputation`                | Summary statistics imputation of missing SNPs  (only for BETA/SE input)                     |
+| `--r2threshold`               | R² threshold for  imputation                                                                |
 | `--population`                | Population code (e.g. EUR, AFR) for imputation                                              |
-| `--maf`                       | Minimum allele frequency cutoff for imputation                                              |
-| `--ref`                       | Reference panel identifier (e.g. 1000G)                                                     |
-| `--missing_threshold`         | Fraction of studies that must include a SNP (default 0.5)                                   |
+| `--maf`                       | Minor allele frequency cutoff for imputation                                                |
+| `--ref`                       | Reference panel identifier (e.g. TOP_LD, Pheno_Scanner, Hap_Map, all_panels[default])       |
+| `--missing_threshold`         | Fraction of studies that must include a SNP (default 0.5). When set to 0, it performs  immputation in all variants|
 | `-n`, `--nthreads`            | Number of parallel threads for file I/O (default: 1)                                        |
 
 #### Case 2: Direct BETA/SE (No Imputation)
