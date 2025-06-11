@@ -83,7 +83,6 @@ Common options:
 | `--robust_method`             | MIN, MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
 | `--type_of_effect`            | FIXED or RANDOM                                                                             |
 | `--approximate_max`           | YES or NO                                                                                   |
-| `--biv_ma`                    | YES to force bivariate meta-analysis (default NO)                                           |
 | `--bayesian_meta`             | YES to run Bayesian meta-analysis (default NO)                                              |
 | `--imputation`                | Summary statistics imputation of missing SNPs  (only for BETA/SE input)                     |
 | `--r2threshold`               | R² threshold for  imputation                                                                |
