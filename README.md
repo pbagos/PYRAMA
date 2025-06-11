@@ -101,7 +101,7 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o beta_se_met
 #### Case 2: BETA/SE + Imputation
 
 ```bash
-python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_meta.txt    --imputation   --r2threshold 0.8   --population EUR   --maf 0.01   --ref 1000G   --missing_threshold 0.0    
+python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_meta.txt    --imputation   --r2threshold 0.8   --population EUR   --maf 0.01   --ref all_panels   --missing_threshold 0.0    
 ```
 
 #### Case 1: Discrete Counts (Standard, Fast, Bayesian)
