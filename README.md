@@ -169,7 +169,7 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
 ```bash
 python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o continuous_meta.txt   --inheritance_model ADDITIVE   --robust_method MAX   --type_of_effect RANDOM
 ```
-##Use case scenario data 
+## Use case scenario data 
 
 The replication report is available at analysis_code.html  file of this repository with all data and results.
 
