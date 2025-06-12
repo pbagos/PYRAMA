@@ -1,246 +1,336 @@
-# Imports
-import pandas as pd
 import argparse
 import os
 import warnings
+import polars as pl
+import pandas as pd 
 from itertools import combinations
-
-# Settings the warnings to be ignored
+# Ignore warnings
 warnings.filterwarnings('ignore')
 
 
-def read_gwas_file(filepath):
+def read_gwas_file(filepath: str) -> pl.DataFrame | None:
+    """
+    Read a GWAS file into a Polars DataFrame, checking for required columns.
+    """
     try:
-        df = pd.read_csv(filepath, sep='\t')
+        df = pl.read_csv(filepath, separator="\t")
     except Exception as e:
         print(f"Error reading {filepath}: {e}")
         return None
 
     expected_cols = ['SNP', 'CHR', 'BP', 'A1', 'A2', 'BETA', 'SE']
     mandatory_cols = ['SNP', 'BETA', 'SE']
-    
-    missing_cols = [col for col in expected_cols if col not in df.columns]
-    missing_cols_mandatory = [col for col in mandatory_cols if col not in df.columns]
+
+    missing_cols = [c for c in expected_cols if c not in df.columns]
+    missing_mand = [c for c in mandatory_cols if c not in df.columns]
 
     if missing_cols:
         print(f"File {filepath} is missing columns: {missing_cols}")
-    if missing_cols_mandatory:
-        print(f"File {filepath} is missing mandatory columns: {missing_cols_mandatory}")
+    if missing_mand:
+        print(f"File {filepath} is missing mandatory columns: {missing_mand}")
         return None
 
-    present_expected_cols = [col for col in expected_cols if col in df.columns]
-    df = df[present_expected_cols]
-
+    # Select only expected columns present
+    df = df.select([c for c in expected_cols if c in df.columns])
     return df
 
 
-def quality_control(df, skip_harm=False):
-    problematic_lines = []
-    initial_count = len(df)
+def quality_control(
+    df: pl.DataFrame,
+    skip_harm: bool = False
+) -> tuple[pl.DataFrame, int, int, pl.DataFrame]:
+    """
+    Perform QC: remove missing/invalid BETA/SE, non-positive SE, and invalid alleles.
+    Returns cleaned df, initial count, final count, and DataFrame of problematic lines.
+    """
+    problematic = []
+    initial_count = df.height
 
-    missing_mask = df[['BETA', 'SE']].isnull().any(axis=1)
-    missing_rows = df[missing_mask]
-    for idx, row in missing_rows.iterrows():
-        problematic_lines.append({
-            "study": row["study"],
-            "SNP": row["SNP"],
-            "reason": "Missing BETA or SE"
-        })
-    df = df.dropna(subset=['BETA', 'SE'])
+    # 1) Missing BETA or SE
+    missing = df.filter(pl.col('BETA').is_null() | pl.col('SE').is_null())
+    for row in missing.select(['study', 'SNP']).to_dicts():
+        problematic.append({**row, 'reason': 'Missing BETA or SE'})
+    df = df.drop_nulls(['BETA', 'SE'])
 
-    df['BETA'] = pd.to_numeric(df['BETA'], errors='coerce')
-    df['SE'] = pd.to_numeric(df['SE'], errors='coerce')
+    # 2) Ensure numeric
+    df = df.with_columns([
+        pl.col('BETA').cast(pl.Float64),
+        pl.col('SE').cast(pl.Float64)
+    ])
+    invalid_numeric = df.filter(pl.col('BETA').is_null() | pl.col('SE').is_null())
+    for row in invalid_numeric.select(['study', 'SNP']).to_dicts():
+        problematic.append({**row, 'reason': 'Invalid numeric value in BETA or SE'})
+    df = df.drop_nulls(['BETA', 'SE'])
 
-    conversion_mask = df[['BETA', 'SE']].isnull().any(axis=1)
-    conversion_rows = df[conversion_mask]
-    for idx, row in conversion_rows.iterrows():
-        problematic_lines.append({
-            "study": row["study"],
-            "SNP": row["SNP"],
-            "reason": "Invalid numeric value in BETA or SE"
-        })
-    df = df.dropna(subset=['BETA', 'SE'])
+    # 3) Non-positive SE
+    nonpos_se = df.filter(pl.col('SE') <= 0)
+    for row in nonpos_se.select(['study', 'SNP']).to_dicts():
+        problematic.append({**row, 'reason': 'Wrong SE value'})
+    df = df.filter(pl.col('SE') > 0)
 
-    negative_se_mask = df['SE'] <= 0
-    negative_se_rows = df[negative_se_mask]
-    for idx, row in negative_se_rows.iterrows():
-        problematic_lines.append({
-            "study": row["study"],
-            "SNP": row["SNP"],
-            "reason": "Wrong SE value"
-        })
-    df = df[~negative_se_mask]
+    # 4) Allele filtering
+    if not skip_harm and {'A1', 'A2'}.issubset(df.columns):
+        valid = ['A', 'C', 'G', 'T']
+        bad_allele = df.filter(~(pl.col('A1').is_in(valid) & pl.col('A2').is_in(valid)))
+        for row in bad_allele.select(['study', 'SNP']).to_dicts():
+            problematic.append({**row, 'reason': 'wrong allele symbol'})
+        df = df.filter(pl.col('A1').is_in(valid) & pl.col('A2').is_in(valid))
 
-    if not skip_harm and 'A1' in df.columns and 'A2' in df.columns:
-        valid_alleles = {"A", "G", "C", "T"}
-        allele_mask = df['A1'].isin(valid_alleles) & df['A2'].isin(valid_alleles)
-        allele_problematic_rows = df[~allele_mask]
-        for idx, row in allele_problematic_rows.iterrows():
-            problematic_lines.append({
-                "study": row["study"],
-                "SNP": row["SNP"],
-                "reason": "wrong allele symbol"
-            })
-        df = df[allele_mask]
+    final_count = df.height
+    print(
+        f"Quality Control: Dropped {initial_count - final_count} rows "
+        "due to missing/invalid BETA, SE values or wrong allele symbol"
+    )
 
-    final_count = len(df)
-    print(f"Quality Control: Dropped {initial_count - final_count} rows due to missing/invalid BETA, SE values or wrong allele symbol")
-
-    prob_df = pd.DataFrame(problematic_lines)
-    if not prob_df.empty:
-        prob_df = prob_df[['study', 'SNP', 'reason']]
-    else:
-        prob_df = pd.DataFrame(columns=['study', 'SNP', 'reason'])
-
+    prob_df = pl.DataFrame(problematic) if problematic else pl.DataFrame(
+        {'study': [], 'SNP': [], 'reason': []}
+    )
     return df, initial_count, final_count, prob_df
 
 
-def harmonize_variants(df):
-    harmonization_count = 0
-    grouped = df.groupby('SNP')
-    for snp, group in grouped:
-        ref_allele = group.iloc[0]['A1']
-        for idx in group.index:
-            current_a1 = df.at[idx, 'A1']
-            if current_a1 != ref_allele:
-                df.at[idx, 'BETA'] = -df.at[idx, 'BETA']
-                original_a1 = df.at[idx, 'A1']
-                df.at[idx, 'A1'] = df.at[idx, 'A2']
-                df.at[idx, 'A2'] = original_a1
-                harmonization_count += 1
-    return df, harmonization_count
+def harmonize_variants(
+    df: pl.DataFrame
+) -> tuple[pl.DataFrame, int]:
+    """
+    Harmonize allele signs so that A1 matches the reference from the first occurrence per SNP.
+    """
+    records = df.to_dicts()
+    ref = {}
+    harmon_count = 0
+    # Determine reference A1 per SNP
+    for rec in records:
+        snp = rec['SNP']
+        if snp not in ref:
+            ref[snp] = rec['A1']
+    # Flip BETA and swap alleles where needed
+    for rec in records:
+        if rec['A1'] != ref[rec['SNP']]:
+            rec['BETA'] = -rec['BETA']
+            rec['A1'], rec['A2'] = rec['A2'], rec['A1']
+            harmon_count += 1
+    return pl.DataFrame(records), harmon_count
 
 
-def compute_common_snps(df):
-    unique_studies = df["study"].unique()
-    for study in unique_studies:
-        print(f"SNPs that exist in {study} and not in the other studies are written to {study}_missing_snps_from_all_others.txt")
+def filter_consistent_snps(
+    df: pl.DataFrame
+) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """
+    Keep only SNPs where allele pairs are consistent across studies.
+    Return cleaned df and DataFrame of problematic SNPs.
+    """
+    # Create a canonical allele_pair string (sorted)
+    df = df.with_columns(
+        pl.when(pl.col('A1') < pl.col('A2'))
+        .then(pl.concat_str([pl.col('A1'), pl.col('A2')], separator='_'))
+        .otherwise(pl.concat_str([pl.col('A2'), pl.col('A1')], separator='_'))
+        .alias('allele_pair')
+    )
+    # Determine SNPs with a single unique allele_pair
+    counts = df.group_by('SNP').agg(
+        pl.col('allele_pair').n_unique().alias('n_pairs')
+    )
+    good_snps = counts.filter(pl.col('n_pairs') == 1)['SNP'].to_list()
 
-    study_combinations = []
-    for r in range(1, len(unique_studies) + 1):
-        study_combinations.extend(combinations(unique_studies, r))
+    consistent = df.filter(pl.col('SNP').is_in(good_snps)).drop('allele_pair')
+    inconsistent = df.filter(~pl.col('SNP').is_in(good_snps))
+    problem = inconsistent.select(['study', 'SNP']).with_columns(
+        pl.lit('inconsistent alleles').alias('reason')
+    )
+    return consistent, problem
+
+
+def compute_common_snps(
+    df: pl.DataFrame
+) -> pl.DataFrame:
+    """
+    For every combination of studies, compute number of shared SNPs,
+    and write missing SNPs per study to text files.
+    """
+    studies = df['study'].unique().to_list()
+    for s in studies:
+        print(
+            f"SNPs that exist in {s} and not in the other studies "
+            f"are written to {s}_missing_snps_from_all_others.txt"
+        )
+
+    combos = []
+    for r in range(1, len(studies) + 1):
+        combos += list(combinations(studies, r))
 
     results = []
-    for combo in study_combinations:
-        row = {study: "X" if study in combo else "O" for study in unique_studies}
-        common_snps = set(df[df["study"] == combo[0]]["SNP"])
-        for study in combo[1:]:
-            common_snps.intersection_update(set(df[df["study"] == study]["SNP"]))
-        row["number_of_SNPs"] = len(common_snps)
+    for combo in combos:
+        row = {st: 'X' if st in combo else 'O' for st in studies}
+        common = set(df.filter(pl.col('study') == combo[0])['SNP'].to_list())
+        for st in combo[1:]:
+            common &= set(df.filter(pl.col('study') == st)['SNP'].to_list())
+        row['number_of_SNPs'] = len(common)
         results.append(row)
 
-        for study in unique_studies:
-            snps_study = set(df[df["study"] == study]["SNP"])
-            other_studies = [s for s in unique_studies if s != study]
-            snps_all_others = set().union(*(set(df[df["study"] == s]["SNP"]) for s in other_studies))
-            missing_snps_combined = snps_all_others - snps_study
+        # write missing per study
+        for st in studies:
+            snps_st = set(df.filter(pl.col('study') == st)['SNP'].to_list())
+            others = [o for o in studies if o != st]
+            union_others = set().union(*[
+                set(df.filter(pl.col('study') == o)['SNP'].to_list()) for o in others
+            ])
+            missing = union_others - snps_st
+            with open(f"{st}_missing_snps_from_all_others.txt", 'w') as f:
+                f.write("\n".join(missing))
 
-            filename_combined = f"{study}_missing_snps_from_all_others.txt"
-            with open(filename_combined, "w") as file:
-                file.write("\n".join(missing_snps_combined))
-
-    return pd.DataFrame(results)
+    return pl.DataFrame(results)
 
 
-def filter_consistent_snps(df):
-    df['allele_pair'] = df.apply(lambda row: tuple(sorted([row['A1'], row['A2']])), axis=1)
-    def is_consistent(group): return group['allele_pair'].nunique() == 1
-    consistent_df = df.groupby('SNP').filter(is_consistent)
-    inconsistent_df = df.groupby('SNP').filter(lambda group: not is_consistent(group))
-    consistent_df = consistent_df.drop('allele_pair', axis=1)
-    problematic_df = inconsistent_df[['study', 'SNP']].copy()
-    problematic_df['reason'] = 'inconsistent alleles'
-    return consistent_df, problematic_df
+def compute_common_snps(
+    df: pl.DataFrame
+) -> pl.DataFrame:
+    """
+    For every combination of studies, compute number of shared SNPs,
+    and write missing SNPs per study to text files.
+    """
+    studies = df['study'].unique().to_list()
+    for s in studies:
+        print(
+            f"SNPs that exist in {s} and not in the other studies "
+            f"are written to {s}_missing_snps_from_all_others.txt"
+        )
+
+    combos = []
+    for r in range(1, len(studies) + 1):
+        combos += list(combinations(studies, r))
+
+    results = []
+    for combo in combos:
+        row = {st: 'X' if st in combo else 'O' for st in studies}
+        common = set(df.filter(pl.col('study') == combo[0])['SNP'].to_list())
+        for st in combo[1:]:
+            common &= set(df.filter(pl.col('study') == st)['SNP'].to_list())
+        row['number_of_SNPs'] = len(common)
+        results.append(row)
+
+        # write missing per study
+        for st in studies:
+            snps_st = set(df.filter(pl.col('study') == st)['SNP'].to_list())
+            others = [o for o in studies if o != st]
+            union_others = set().union(*[
+                set(df.filter(pl.col('study') == o)['SNP'].to_list()) for o in others
+            ])
+            missing = union_others - snps_st
+            with open(f"{st}_missing_snps_from_all_others.txt", 'w') as f:
+                f.write("\n".join(missing))
+
+    return pl.DataFrame(results)
 
 
 def main():
+
     print("-----------------------------------------------------")
-    print("Quality Control")
+    print("PYRAMA - Quality Control")
     print("-----------------------------------------------------")
 
     parser = argparse.ArgumentParser(
-        description="Combine multiple GWAS files, perform quality control, and allele harmonization.")
-    parser.add_argument('input_files', nargs='+',
-                        help='Input GWAS files (tab-delimited) with columns: SNP, CHR, BP, A1, A2, BETA, SE.')
-    parser.add_argument('--output', default='merged_study.txt',
-                        help='Output file for merged and harmonized GWAS data.')
-    parser.add_argument('--skip_harm', action='store_true',
-                        help='Skip allele harmonization and ignore A1/A2 filtering.')
+        description="Combine multiple GWAS files, perform QC, and allele harmonization."
+    )
+    parser.add_argument(
+        '--input_files', nargs='+',
+        help='Input tab-delimited GWAS files with SNP, CHR, BP, A1, A2, BETA, SE.'
+    )
+    parser.add_argument(
+        '--output', default='merged_study.txt',
+        help='Output file for merged and harmonized GWAS data.'
+    )
+    parser.add_argument(
+        '--skip_harm', action='store_true',
+        help='Skip allele harmonization and A1/A2 filtering.'
+    )
     args = parser.parse_args()
 
-    snp_counts = {}
-    dataframes = []
-    problematic_dfs = []
+    snp_counts: dict[str, int] = {}
+    dfs: list[pl.DataFrame] = []
 
-    for filepath in args.input_files:
-        print(f"Processing file: {filepath}")
-        df = read_gwas_file(filepath)
+    for fp in args.input_files:
+        print(f"Processing file: {fp}")
+        df = read_gwas_file(fp)
         if df is None:
-            print(f"Skipping file: {filepath} due to errors.")
+            print(f"Skipping {fp} due to errors.")
             continue
-        study_name = os.path.basename(filepath)
-        df['study'] = study_name
-        unique_snps = df['SNP'].nunique()
-        snp_counts[study_name] = unique_snps
-        dataframes.append(df)
+        study = os.path.basename(fp)
+        df = df.with_columns(pl.lit(study).alias('study'))
+        snp_counts[study] = df['SNP'].n_unique()
+        dfs.append(df)
 
-    if not dataframes:
+    if not dfs:
         print("No valid GWAS files provided. Exiting.")
         return
 
-    merged_df = pd.concat(dataframes, ignore_index=True)
-    print(f"Total merged records before quality control: {len(merged_df)}")
+    merged = pl.concat(dfs)
+    print(f"Total merged records before QC: {merged.height}")
 
-    merged_df, initial_count, final_count, prob_df = quality_control(merged_df, skip_harm=args.skip_harm)
-    merged_df = merged_df.sort_values(by=['SNP', 'CHR'])
+    merged, init_count, final_count, prob_qc = quality_control(
+        merged, skip_harm=args.skip_harm
+    )
+    merged = merged.sort(['SNP', 'CHR'])
 
-    harmonization_count = 0
-    problematic_df_allele = pd.DataFrame(columns=['study', 'SNP', 'reason'])
+    harm_count = 0
+    prob_allele = pl.DataFrame({'study': [], 'SNP': [], 'reason': []})
 
-    if not args.skip_harm and "A1" in merged_df.columns and "A2" in merged_df.columns:
-        merged_df, problematic_df_allele = filter_consistent_snps(merged_df)
-        merged_df, harmonization_count = harmonize_variants(merged_df)
-        print(f"Total allele harmonizations performed: {harmonization_count}")
+    if not args.skip_harm and {'A1', 'A2'}.issubset(merged.columns):
+        merged, prob_allele = filter_consistent_snps(merged)
+        merged, harm_count = harmonize_variants(merged)
+        print(f"Total allele harmonizations performed: {harm_count}")
     elif args.skip_harm:
         print("Harmonization skipped as requested.")
     else:
         print("Allele columns not found. Harmonization not performed.")
 
-    print(f"Total merged records after quality control: {len(merged_df)}")
+    print(f"Total merged records after QC: {merged.height}")
 
-    for study in merged_df['study'].unique():
-        df_study = merged_df[merged_df['study'] == study]
-        output_file = study.split(".")[0] + "_harmonized.txt"
-        df_study = df_study.drop('study', axis=1)
-        df_study.to_csv(output_file, sep='\t', index=False)
-        print(f"Written {len(df_study)} rows to {output_file}")
+    # Write per-study harmonized files
+    for study in merged['study'].unique().to_list():
+        df_st = merged.filter(pl.col('study') == study).drop('study')
+        out_file = f"{study.split('.')[0]}_harmonized.txt"
+        df_st.write_csv(out_file, separator='\t')
+        print(f"Written {df_st.height} rows to {out_file}")
 
-    merged_df.to_csv(args.output, sep='\t', index=False)
-    print(f"Merged and harmonized GWAS data written to {args.output}")
+    # Write merged output
+    merged.write_csv(args.output, separator='\t')
+    print(f"Merged and harmonized data written to {args.output}")
 
-    prob_df = pd.concat([prob_df, problematic_df_allele])
-    if not prob_df.empty:
-        prob_df.to_csv("prob_lines.txt", sep='\t', index=False)
+    # 1. Convert each to pandas
+    prob_qc_pd     = prob_qc.to_pandas()
+    prob_allele_pd = prob_allele.to_pandas()
+
+    # 2. Concatenate in pandas
+    all_prob_pd = pd.concat([prob_qc_pd, prob_allele_pd], ignore_index=True)
+
+    # 3. Write out if non‐empty
+    if not all_prob_pd.empty:
+        all_prob_pd.to_csv('prob_lines.txt', sep='\t', index=False)
         print("Problematic lines written to prob_lines.txt")
 
-    common_array = compute_common_snps(merged_df)
-    common_array.to_csv("common_SNPs_combinations.txt", sep='\t', index=False)
-    print("Common SNPs across all study combinations written to common_SNPs_combinations.txt")
+    # Compute & write common SNP combinations
+    common_df = compute_common_snps(merged)
+    common_df.write_csv('common_SNPs_combinations.txt', separator='\t')
+    print("Common SNPs combinations written to common_SNPs_combinations.txt")
 
-    report_lines = []
-    report_lines.append("Quality Control Report")
-    report_lines.append("-----------------------\n")
-    report_lines.append("Unique SNP counts per study:")
-    for filename, count in snp_counts.items():
-        report_lines.append(f"{filename}: {count}")
-    report_lines.append(f"\nTotal allele harmonizations performed: {harmonization_count}")
-    if not prob_df.empty:
-        report_lines.append(f"\nDropped Lines: {initial_count - final_count}. See prob_lines.txt for further details\n")
+    # Generate QC report
+    report_lines = [
+        "Quality Control Report",
+        "-----------------------",
+        "",
+        "Unique SNP counts per study:"
+    ]
+    for fn, cnt in snp_counts.items():
+        report_lines.append(f"{fn}: {cnt}")
+    report_lines.append(f"\nTotal allele harmonizations performed: {harm_count}")
+    if init_count != final_count:
+        report_lines.append(
+            f"\nDropped Lines: {init_count - final_count}. "
+            "See prob_lines.txt for details.\n"
+        )
 
-    with open("quality_control_report.txt", "w") as report_file:
-        report_file.write("\n".join(report_lines))
+    with open('quality_control_report.txt', 'w') as rf:
+        rf.write("\n".join(report_lines))
     print("Quality control report written to quality_control_report.txt")
-    print("-----------------------------------------------------")
 
 
 if __name__ == '__main__':
