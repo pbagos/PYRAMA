@@ -171,9 +171,7 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o continuous
 ```
 ##Use case scenario data 
 
-Use case scenario data are available [here](https://drive.google.com/file/d/19fUN46UbhOgE6qTpICNM-OQTHqpmHjTA/view?usp=drive_link).
-
-The replication report is available at analysis_code.html  file of this repository
+The replication report is available at analysis_code.html  file of this repository with all data and results.
 
 ## Contributing
 
