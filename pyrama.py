@@ -2,7 +2,7 @@ import sys
 import os
 import argparse
 import time
-from typing import List, Optional
+
 
 import pandas as pd
 
@@ -10,9 +10,8 @@ import meta_analysis
 import cont_meta_analysis
 import fast_robust_analysis
 import bayesian
-import bivariate
-import bivariate_gwas
-
+ 
+from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
