@@ -18,7 +18,6 @@ A Python tool for robust analysis and meta-analysis of Genome Wide Association S
     - [Case 1: Discrete Counts (Standard, Fast, Bayesian)](#case-1-discrete-counts-standard-fast-bayesian)  
     - [Case 3: Continuous Phenotype](#case-3-continuous-phenotype)  
     - [Bivariate Meta-Analysis](#bivariate-meta-analysis)  
-- [API Reference](#api-reference)  
 - [Examples](#examples)
 - [Use case scenario data](#use-case-scenario-data)
 - [Contributing](#contributing)  
