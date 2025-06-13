@@ -63,52 +63,54 @@ def fast_robust_analysis(data,effect_size_type):
 
     # Iterate through each SNP
     for snp_name in snp_keys:
-        snp_data = pd.DataFrame(snp_hash[snp_name])
-        #print(snp_name,snp_data)
-        AA1, AB1, BB1, AA0, AB0, BB0 = [np.array(snp_data[0][col]) for col in range(2, 8)]
+ 
+        snp_data = pl.DataFrame(snp_hash[snp_name]).transpose()
+     
+        for row in snp_data.iter_rows():
+            AA1, AB1, BB1, AA0, AB0, BB0 = [np.array(row[col]) for col in range(2, 8)]
 
-        aa1, ab1, bb1, aa0, ab0, bb0 = AA1, AB1, BB1, AA0, AB0, BB0
-       
-        if any([x == 0 for x in [aa1.astype(float), ab1.astype(float), bb1.astype(float), aa0.astype(float), ab0.astype(float), bb0.astype(float)]]):
-            aa1 = aa1.astype(float) + 0.5
-            ab1 = ab1.astype(float) + 0.5
-            bb1 = bb1.astype(float) + 0.5
-            aa0 = aa0.astype(float) + 0.5
-            ab0 = ab0.astype(float) + 0.5
-            bb0 = bb0.astype(float) + 0.5
+            aa1, ab1, bb1, aa0, ab0, bb0 = AA1, AB1, BB1, AA0, AB0, BB0
+           
+            if any([x == 0 for x in [aa1.astype(float), ab1.astype(float), bb1.astype(float), aa0.astype(float), ab0.astype(float), bb0.astype(float)]]):
+                aa1 = aa1.astype(float) + 0.5
+                ab1 = ab1.astype(float) + 0.5
+                bb1 = bb1.astype(float) + 0.5
+                aa0 = aa0.astype(float) + 0.5
+                ab0 = ab0.astype(float) + 0.5
+                bb0 = bb0.astype(float) + 0.5
 
-        row_list = [aa1, ab1, bb1, aa0, ab0, bb0]
-        #print(row_list)
-        effect_dom, var_dom = discrete_model.model_dominant(row_list, effect_size_type)
-        effect_add, var_add = discrete_model.model_additive(row_list, effect_size_type)
-        effect_rec, var_rec = discrete_model.model_recessive(row_list, effect_size_type)
+            row_list = [aa1, ab1, bb1, aa0, ab0, bb0]
+            
+            effect_dom, var_dom = discrete_model.model_dominant(row_list, effect_size_type)
+            effect_add, var_add = discrete_model.model_additive(row_list, effect_size_type)
+            effect_rec, var_rec = discrete_model.model_recessive(row_list, effect_size_type)
 
-        z_dom = effect_dom / math.sqrt(var_dom) if var_dom > 0 else 0
-        z_add = effect_add / math.sqrt(var_add) if var_add > 0 else 0
-        z_rec = effect_rec / math.sqrt(var_rec) if var_rec > 0 else 0
+            z_dom = effect_dom / math.sqrt(var_dom) if var_dom > 0 else 0
+            z_add = effect_add / math.sqrt(var_add) if var_add > 0 else 0
+            z_rec = effect_rec / math.sqrt(var_rec) if var_rec > 0 else 0
 
-        z_dom_list.append(z_dom)
-        z_add_list.append(z_add)
-        z_rec_list.append(z_rec)
+            z_dom_list.append(z_dom)
+            z_add_list.append(z_add)
+            z_rec_list.append(z_rec)
 
-        # Combine p-values using MinP and Cauchy
-        p_vals = [norm.sf(abs(z)) * 2 for z in [z_dom, z_add, z_rec]]
-        p_vals = np.array(p_vals)
+            # Combine p-values using MinP and Cauchy
+            p_vals = [norm.sf(abs(z)) * 2 for z in [z_dom, z_add, z_rec]]
+            p_vals = np.array(p_vals)
 
-        T = np.tan((0.5 - p_vals) * np.pi)
-        t = np.sum(T) / 3
+            T = np.tan((0.5 - p_vals) * np.pi)
+            t = np.sum(T) / 3
 
-        # Calculate the combined p-value using the Cauchy distribution
-        p_cauchy = Decimal(cauchy.sf(t))
-        p_min = min(p_vals)
-        combined_p = 1 - (1 - Decimal(p_min)) ** 3
+            # Calculate the combined p-value using the Cauchy distribution
+            p_cauchy = Decimal(cauchy.sf(t))
+            p_min = min(p_vals)
+            combined_p = 1 - (1 - Decimal(p_min)) ** 3
 
-        p_value_min_p.append(np.float64(combined_p))
-        p_value_cauchy.append(np.float64(p_cauchy))
-       
-        p_dom.append(p_vals[0])
-        p_rec.append(p_vals[2])
-        p_add.append(p_vals[1])
+            p_value_min_p.append(np.float64(combined_p))
+            p_value_cauchy.append(np.float64(p_cauchy))
+           
+            p_dom.append(p_vals[0])
+            p_rec.append(p_vals[2])
+            p_add.append(p_vals[1])
         
         
     p_value_min_p = np.array(p_value_min_p)

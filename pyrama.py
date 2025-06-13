@@ -242,7 +242,7 @@ def gwas_meta_analysis(
 
     # Merge for other cases
     merged_df = merge_input_files(input_files, max_workers=nthreads)
-
+ 
     # Bivariate allele counts
     if all(col in merged_df.columns for col in case_12_columns):
         print("Bivariate meta-analysis (allele counts)")
@@ -298,11 +298,11 @@ def gwas_meta_analysis(
 
 if __name__ == "__main__":
     print(r"""
-_______  __      __  _______    ______   __       __   ______  
+_______  __      __  _______    ______   __       __    ______  
 |       \|  \    /  \|       \  /      \ |  \     /  \ /      \ 
 | #######\\##\  /  ##| #######\|  ######\| ##\   /  ##|  ######\
 | ##__/ ## \##\/  ## | ##__| ##| ##__| ##| ###\ /  ###| ##__| ##
-| ##    ##  \##  ##  | ##    ##| ##    ##| ####\\  ####| ##    ##
+| ##    ##  \##  ##  | ##    ##| ##    ##| ####\\  #### ##    ##
 | #######    \####   | #######\| ########| ##\## ## ##| ########
 | ##         | ##    | ##  | ##| ##  | ##| ## \###| ##| ##  | ##
 | ##         | ##    | ##  | ##| ##  | ##| ##  \# | ##| ##  | ##
