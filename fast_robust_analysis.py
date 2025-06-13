@@ -4,6 +4,7 @@ import numpy as np
 import math
 import discrete_model, robust
 import argparse
+import polars as pl 
 from scipy.stats import norm, cauchy
 from decimal import Decimal, getcontext
 
@@ -16,8 +17,25 @@ def cauchy_cdf(x, x0=0, gamma=1):
     return 0.5 + (np.arctan((x - x0) / gamma) / np.pi)
 
 
+import numpy as np
+from scipy.stats import norm, pearsonr
 
+def correlated_Stouffer(values, cor_sum,k  ):
+  
+    values = np.array(values)
+    z_scores = values
+    
+    total_variance = k + 2 * cor_sum
+    # Compute combined test statistic
+    combined_z = np.sum(z_scores) / np.sqrt(total_variance)
 
+    # Compute combined p-value
+    combined_p_value = 1 - norm.cdf(combined_z)
+    #combined_p_value = 2 *norm.sf(combined_z)
+
+    return combined_p_value
+
+ 
 
 
 def fast_robust_analysis(data,effect_size_type):
@@ -104,7 +122,28 @@ def fast_robust_analysis(data,effect_size_type):
     # Compute the MCM values
     min_values = np.minimum(p_value_cauchy, p_value_min_p)
     p_mcm = np.minimum(1, 2 * min_values)
+    
+    #Correlated Stouffer 
+    stouffer_corr_p = [ ] 
+    data_matrix = np.column_stack((z_dom_list, z_add_list, z_rec_list))
+    
+    
+    k = data_matrix.shape[1]  # Number of tests (columns)
 
+    
+    cor_sum = 0
+    for i in range(k):
+        for j in range(i + 1, k):
+            cor, _ = pearsonr(data_matrix[:, i], data_matrix[:, j])  # Correlation between columns (tests)
+ 
+            cor_sum += cor
+   
+    
+
+    for row in data_matrix:
+      p_val_stouffer = correlated_Stouffer(values=row, cor_sum = cor_sum, k = k  )
+      stouffer_corr_p.append(p_val_stouffer)
+    
     return pd.DataFrame(
         {'SNP': snps,
          'CHR': np.array(file['CHR']),
@@ -122,8 +161,8 @@ def fast_robust_analysis(data,effect_size_type):
          'P_MinP': p_value_min_p,
          'P_CCT': p_value_cauchy,
          'P_CMC': p_cmc,
-         'P_MCM': p_mcm
-
+         'P_MCM': p_mcm,
+         'P_Stouffer' : np.array(stouffer_corr_p)
          })
 
 
@@ -135,8 +174,9 @@ def fast_robust_analysis(data,effect_size_type):
 
 
 def fast_robust_analysis_sep(path, file_list, effect_size_type):
-    study_list = [pd.read_csv(os.path.join(path, file), sep='\t', encoding='latin1') for file in file_list]
-
+    s#tudy_list = [pd.read_csv(os.path.join(path, file), sep='\t', encoding='latin1') for file in file_list]
+    study_list = [pl.read_csv(os.path.join(path, f), separator="\t", encoding="latin1") for f in file_list]
+    print(study_list)
     # Combine dataframes into the first one
     file = study_list[0]
     file.index = file['SNP']
@@ -250,3 +290,4 @@ if __name__ == "__main__":
     # Save results to the output file
     final_results.to_csv(args.output, index=False, sep='\t')
     print(f"Results saved to {args.output}")
+ 

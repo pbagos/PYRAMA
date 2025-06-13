@@ -903,8 +903,8 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
             final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
-            print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
-            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
+           # print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
+            #print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
@@ -936,7 +936,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             data['imputed'] = 0
 
             final_data = pd.concat([final_data, data], ignore_index=True)
-            print(f"Total : {len(final_data)} SNPs")
+            #print(f"Total : {len(final_data)} SNPs")
 
             #final_data.to_csv(file_path+"_imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
@@ -1043,12 +1043,12 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
             print(f"Total Imputed SNPs: {len(final_data[final_data['imputed'] == 1])} SNPs")
 
-            print(f"Total : {len(final_data)} SNPs")
+            #print(f"Total : {len(final_data)} SNPs")
 
             #final_data.to_csv(file_path+"_imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
-            print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
-            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
+            #print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
+            #print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)

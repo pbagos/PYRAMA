@@ -2,16 +2,15 @@ import sys
 import os
 import argparse
 import time
-
-
 import pandas as pd
-
+import polars as pl
 import meta_analysis
 import cont_meta_analysis
 import fast_robust_analysis
 import bayesian
- 
 from typing import List, Optional
+
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -55,41 +54,54 @@ def _read_tsv(file_path: str) -> pd.DataFrame:
         raise RuntimeError(f"Error reading file {file_path}: {e}")
 
 
-def merge_input_files(file_list: List[str], max_workers: int = 1) -> pd.DataFrame:
+ 
+
+def merge_input_files(
+    file_list: List[str],
+    max_workers: int = 1
+) -> pd.DataFrame:
     """
-    Reads and merges multiple TSV files by rows, using a thread pool for parallel reads.
+    Reads and merges multiple TSV files by rows using Polars for fast I/O
+    and an optional thread pool for file‐level concurrency.
 
     Parameters
     ----------
-    file_list : list of str
+    file_list : List[str]
         Paths to TSV files.
-    max_workers : int
-        Number of threads to use for reading.
+    max_workers : int, optional
+        Number of threads to use for reading files in parallel. Default is 1.
 
     Returns
     -------
     pandas.DataFrame
         Concatenated DataFrame sorted by 'SNP'.
     """
-    dataframes: List[pd.DataFrame] = []
+    # Helper to read a single TSV into a Polars DataFrame
+    def _read_tsv_polars(fp: str) -> pl.DataFrame:
+        return pl.read_csv(fp, separator='\t')
 
+    polars_dfs: List[pl.DataFrame] = []
     # Parallel file reads
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_file = {executor.submit(_read_tsv, fp): fp for fp in file_list}
-        for future in as_completed(future_to_file):
-            fp = future_to_file[future]
+        future_to_fp = {
+            executor.submit(_read_tsv_polars, fp): fp
+            for fp in file_list
+        }
+        for future in as_completed(future_to_fp):
+            fp = future_to_fp[future]
             try:
-                df = future.result()
-                dataframes.append(df)
+                df_pl = future.result()
+                polars_dfs.append(df_pl)
             except Exception as exc:
                 print(f"Error processing {fp}: {exc}", file=sys.stderr)
                 sys.exit(1)
 
-    # Concatenate and sort
-    merged_df = pd.concat(dataframes, axis=0, ignore_index=True)
-    merged_df = merged_df.sort_values(by='SNP', ascending=True)
-    return merged_df
+    # Concatenate vertically and sort by 'SNP'
+    merged_pl = pl.concat(polars_dfs, how='vertical').sort('SNP')
 
+    # Convert back to pandas DataFrame
+    merged_df = merged_pl.to_pandas()
+    return merged_df
 
 
 def gwas_meta_analysis(
@@ -220,6 +232,7 @@ def gwas_meta_analysis(
         # No imputation
         script_inputs = ' '.join(input_files)
         print("Running Meta-Analysis with BETA and SE...")
+        print(script_inputs)
         start_time = time.time()
         os.system(f"./pyrama_beta_se_meta {script_inputs} > {output_file}")
         elapsed = time.time() - start_time
