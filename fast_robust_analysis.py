@@ -5,8 +5,9 @@ import math
 import discrete_model, robust
 import argparse
 import polars as pl 
-from scipy.stats import norm, cauchy
+from scipy.stats import norm, cauchy,pearsonr
 from decimal import Decimal, getcontext
+
 
 # Set the precision for Decimal calculations
 getcontext().prec = 1000
@@ -17,8 +18,38 @@ def cauchy_cdf(x, x0=0, gamma=1):
     return 0.5 + (np.arctan((x - x0) / gamma) / np.pi)
 
 
-import numpy as np
-from scipy.stats import norm, pearsonr
+def random_effects_meta_analysis(effects, variances, alpha=0.05):
+
+    # Convert to numpy arrays
+    effects = np.asarray(effects)
+    variances = np.asarray(variances)
+    weights_fixed = 1 / variances
+
+    # Fixed effect estimate and Q statistic
+    fixed_effect = np.sum(weights_fixed * effects) / np.sum(weights_fixed)
+    Q = np.sum(weights_fixed * (effects - fixed_effect)**2)
+
+    # Degrees of freedom
+    k = len(effects)
+    df = k - 1
+
+    # Estimate between-study variance tau^2
+    C = np.sum(weights_fixed) - (np.sum(weights_fixed**2) / np.sum(weights_fixed))
+    tau_squared = max(0, (Q - df) / C)
+
+    # Random effects weights
+    weights_random = 1 / (variances + tau_squared)
+
+    # Pooled effect estimate and its variance
+    pooled_effect = np.sum(weights_random * effects) / np.sum(weights_random)
+    pooled_variance = 1 / np.sum(weights_random)
+    pooled_se = np.sqrt(pooled_variance)
+
+    # Z-statistic and p-value for the pooled effect
+    z_stat = pooled_effect / pooled_se
+
+
+    return  z_stat
 
 def correlated_Stouffer(values, cor_sum,k  ):
   
@@ -31,245 +62,167 @@ def correlated_Stouffer(values, cor_sum,k  ):
 
     # Compute combined p-value
     combined_p_value = 1 - norm.cdf(combined_z)
-    #combined_p_value = 2 *norm.sf(combined_z)
 
     return combined_p_value
 
  
 
 
-def fast_robust_analysis(data,effect_size_type):
-    
-    data = data.dropna()
-    # Combine dataframes into the first one
-    file =  data
-    file.index = file['SNP']
-    snps = np.array(file.index)
 
-    file = file.drop(['SNP'], axis=1)
+
+
+def fast_robust_analysis(data, effect_size_type):
+    # Drop rows with any missing values
+    data = data.dropna()
+
+    # Extract CHR and BP mapping for each SNP (takes the first occurrence per SNP)
+    chr_bp = (
+        data[['SNP', 'CHR', 'BP']]
+        .drop_duplicates(subset='SNP')
+        .set_index('SNP')
+    )
+
+    # Prepare data for meta-analysis (exclude SNP column)
+    file = data.copy()
+    file.index = file['SNP']
+    file = file.drop(['SNP', 'CHR', 'BP'], axis=1)
 
     snp_keys = file.index.unique()
     snp_hash = {snp: file.loc[snp].values.tolist() for snp in snp_keys}
 
-    p_value_min_p = []
-    p_value_cauchy = []
-    z_dom_list = []
-    z_add_list = []
-    z_rec_list = []
-    
-    p_dom = []
-    p_rec = []
-    p_add = []
+    # Containers for results
+    snps_ = []
+    z_dom_list, z_add_list, z_rec_list = [], [], []
+    p_dom, p_add, p_rec = [], [], []
+    p_value_min_p, p_value_cauchy = [], []
 
-    # Iterate through each SNP
+    # Loop through each SNP
     for snp_name in snp_keys:
- 
+        dom_meta_es, add_meta_es, rec_meta_es = [], [], []
+        dom_meta_var, add_meta_var, rec_meta_var = [], [], []
+
+        # Build a small DataFrame per SNP
         snp_data = pl.DataFrame(snp_hash[snp_name]).transpose()
-     
+
+        # Iterate over rows (each row represents one study)
         for row in snp_data.iter_rows():
-            AA1, AB1, BB1, AA0, AB0, BB0 = [np.array(row[col]) for col in range(2, 8)]
+            # Columns: 0=AA1, 1=AB1, 2=BB1, 3=AA0, 4=AB0, 5=BB0
+            AA1, AB1, BB1, AA0, AB0, BB0 = [np.array(row[col]) for col in range(0, 6)]
 
-            aa1, ab1, bb1, aa0, ab0, bb0 = AA1, AB1, BB1, AA0, AB0, BB0
-           
-            if any([x == 0 for x in [aa1.astype(float), ab1.astype(float), bb1.astype(float), aa0.astype(float), ab0.astype(float), bb0.astype(float)]]):
-                aa1 = aa1.astype(float) + 0.5
-                ab1 = ab1.astype(float) + 0.5
-                bb1 = bb1.astype(float) + 0.5
-                aa0 = aa0.astype(float) + 0.5
-                ab0 = ab0.astype(float) + 0.5
-                bb0 = bb0.astype(float) + 0.5
+            # Add 0.5 continuity correction if any count is zero
+            counts = [AA1, AB1, BB1, AA0, AB0, BB0]
+            if any(arr.astype(float) == 0 for arr in counts):
+                AA1, AB1, BB1 = AA1 + 0.5, AB1 + 0.5, BB1 + 0.5
+                AA0, AB0, BB0 = AA0 + 0.5, AB0 + 0.5, BB0 + 0.5
 
-            row_list = [aa1, ab1, bb1, aa0, ab0, bb0]
-            
+            row_list = [AA1, AB1, BB1, AA0, AB0, BB0]
+
+            # Compute effect sizes and variances
             effect_dom, var_dom = discrete_model.model_dominant(row_list, effect_size_type)
             effect_add, var_add = discrete_model.model_additive(row_list, effect_size_type)
             effect_rec, var_rec = discrete_model.model_recessive(row_list, effect_size_type)
 
-            z_dom = effect_dom / math.sqrt(var_dom) if var_dom > 0 else 0
-            z_add = effect_add / math.sqrt(var_add) if var_add > 0 else 0
-            z_rec = effect_rec / math.sqrt(var_rec) if var_rec > 0 else 0
+            dom_meta_es.append(effect_dom)
+            dom_meta_var.append(var_dom)
+            add_meta_es.append(effect_add)
+            add_meta_var.append(var_add)
+            rec_meta_es.append(effect_rec)
+            rec_meta_var.append(var_rec)
 
-            z_dom_list.append(z_dom)
-            z_add_list.append(z_add)
-            z_rec_list.append(z_rec)
-
-            # Combine p-values using MinP and Cauchy
-            p_vals = [norm.sf(abs(z)) * 2 for z in [z_dom, z_add, z_rec]]
-            p_vals = np.array(p_vals)
-
-            T = np.tan((0.5 - p_vals) * np.pi)
-            t = np.sum(T) / 3
-
-            # Calculate the combined p-value using the Cauchy distribution
-            p_cauchy = Decimal(cauchy.sf(t))
-            p_min = min(p_vals)
-            combined_p = 1 - (1 - Decimal(p_min)) ** 3
-
-            p_value_min_p.append(np.float64(combined_p))
-            p_value_cauchy.append(np.float64(p_cauchy))
-           
-            p_dom.append(p_vals[0])
-            p_rec.append(p_vals[2])
-            p_add.append(p_vals[1])
-        
-        
-    p_value_min_p = np.array(p_value_min_p)
-    p_value_cauchy = np.array(p_value_cauchy)
-
-    # Compute the tangent terms
-    tan_terms = np.tan((0.5 - p_value_cauchy) * np.pi) + np.tan((0.5 - p_value_min_p) * np.pi)
-    # Compute the CMC values
-    p_cmc = 0.5 - np.arctan(tan_terms / 2) / np.pi
-
-    # Compute the MCM values
-    min_values = np.minimum(p_value_cauchy, p_value_min_p)
-    p_mcm = np.minimum(1, 2 * min_values)
-    
-    #Correlated Stouffer 
-    stouffer_corr_p = [ ] 
-    data_matrix = np.column_stack((z_dom_list, z_add_list, z_rec_list))
-    
-    
-    k = data_matrix.shape[1]  # Number of tests (columns)
-
-    
-    cor_sum = 0
-    for i in range(k):
-        for j in range(i + 1, k):
-            cor, _ = pearsonr(data_matrix[:, i], data_matrix[:, j])  # Correlation between columns (tests)
- 
-            cor_sum += cor
-   
-    
-
-    for row in data_matrix:
-      p_val_stouffer = correlated_Stouffer(values=row, cor_sum = cor_sum, k = k  )
-      stouffer_corr_p.append(p_val_stouffer)
-    
-    return pd.DataFrame(
-        {'SNP': snps,
-         'CHR': np.array(file['CHR']),
-         'BP': np.array(file['BP']),
-         
-         
-         'Z_Dom': z_dom_list,
-         'Z_Add': z_add_list,
-         'Z_Rec': z_rec_list,
-         
-         'P_Dom': np.array(p_dom),
-         'P_Add': np.array(p_add),
-         'P_Rec': np.array(p_rec),
-         
-         'P_MinP': p_value_min_p,
-         'P_CCT': p_value_cauchy,
-         'P_CMC': p_cmc,
-         'P_MCM': p_mcm,
-         'P_Stouffer' : np.array(stouffer_corr_p)
-         })
-
-
-
-
-
-
-
-
-
-def fast_robust_analysis_sep(path, file_list, effect_size_type):
-    s#tudy_list = [pd.read_csv(os.path.join(path, file), sep='\t', encoding='latin1') for file in file_list]
-    study_list = [pl.read_csv(os.path.join(path, f), separator="\t", encoding="latin1") for f in file_list]
-    print(study_list)
-    # Combine dataframes into the first one
-    file = study_list[0]
-    file.index = file['SNP']
-    snps = np.array(file.index)
-
-    file = file.drop(['SNP'], axis=1)
-
-    snp_keys = file.index.unique()
-    snp_hash = {snp: file.loc[snp].values.tolist() for snp in snp_keys}
-
-    p_value_min_p = []
-    p_value_cauchy = []
-    z_dom_list = []
-    z_add_list = []
-    z_rec_list = []
-
-    # Iterate through each SNP
-    for snp_name in snp_keys:
-        snp_data = pd.DataFrame(snp_hash[snp_name])
-
-        AA1, AB1, BB1, AA0, AB0, BB0 = [np.array(snp_data[0][col]) for col in range(2, 8)]
-
-        aa1, ab1, bb1, aa0, ab0, bb0 = AA1, AB1, BB1, AA0, AB0, BB0
-
-        if any([x == 0 for x in [aa1, ab1, bb1, aa0, ab0, bb0]]):
-            aa1 = aa1.astype(float) + 0.5
-            ab1 = ab1.astype(float) + 0.5
-            bb1 = bb1.astype(float) + 0.5
-            aa0 = aa0.astype(float) + 0.5
-            ab0 = ab0.astype(float) + 0.5
-            bb0 = bb0.astype(float) + 0.5
-
-        row_list = [aa1, ab1, bb1, aa0, ab0, bb0]
-
-        effect_dom, var_dom = discrete_model.model_dominant(row_list, effect_size_type)
-        effect_add, var_add = discrete_model.model_additive(row_list, effect_size_type)
-        effect_rec, var_rec = discrete_model.model_recessive(row_list, effect_size_type)
-
-        z_dom = effect_dom / math.sqrt(var_dom) if var_dom > 0 else 0
-        z_add = effect_add / math.sqrt(var_add) if var_add > 0 else 0
-        z_rec = effect_rec / math.sqrt(var_rec) if var_rec > 0 else 0
+        # Random-effects meta-analysis for each genetic model
+        z_dom = random_effects_meta_analysis(dom_meta_es, dom_meta_var, alpha=0.05)
+        z_add = random_effects_meta_analysis(add_meta_es, add_meta_var, alpha=0.05)
+        z_rec = random_effects_meta_analysis(rec_meta_es, rec_meta_var, alpha=0.05)
 
         z_dom_list.append(z_dom)
         z_add_list.append(z_add)
         z_rec_list.append(z_rec)
 
-        # Combine p-values using MinP and Cauchy
-        p_vals = [norm.sf(abs(z)) * 2 for z in [z_dom, z_add, z_rec]]
-        p_vals = np.array(p_vals)
+        # Individual p-values
+        p_vals = np.array([norm.sf(abs(z_dom)) * 2,
+                           norm.sf(abs(z_add)) * 2,
+                           norm.sf(abs(z_rec)) * 2])
 
-        T = np.tan((0.5 - p_vals) * np.pi)
-        t = np.sum(T) / 3
-
-        # Calculate the combined p-value using the Cauchy distribution
-        p_cauchy = Decimal(cauchy.sf(t))
-        p_min = min(p_vals)
+        # MinP combination
+        p_min = p_vals.min()
         combined_p = 1 - (1 - Decimal(p_min)) ** 3
-
         p_value_min_p.append(np.float64(combined_p))
+
+        # Cauchy combination
+        T = np.tan((0.5 - p_vals) * np.pi)
+        t = T.mean()
+        p_cauchy = Decimal(cauchy.sf(t))
         p_value_cauchy.append(np.float64(p_cauchy))
-        
-       
-        
-        
-        
+
+        # Store per-model p-values
+        p_dom.append(p_vals[0])
+        p_add.append(p_vals[1])
+        p_rec.append(p_vals[2])
+        snps_.append(snp_name)
+
+    # Convert combined p-lists to arrays
     p_value_min_p = np.array(p_value_min_p)
     p_value_cauchy = np.array(p_value_cauchy)
 
-    # Compute the tangent terms
+    # CMC (Combined Cauchy-MinP)
     tan_terms = np.tan((0.5 - p_value_cauchy) * np.pi) + np.tan((0.5 - p_value_min_p) * np.pi)
-    # Compute the CMC values
     p_cmc = 0.5 - np.arctan(tan_terms / 2) / np.pi
 
-    # Compute the MCM values
-    min_values = np.minimum(p_value_cauchy, p_value_min_p)
-    p_mcm = np.minimum(1, 2 * min_values)
+    # MCM (Minimum Cauchy-MinP)
+    min_vals = np.minimum(p_value_cauchy, p_value_min_p)
+    p_mcm = np.minimum(1, 2 * min_vals)
 
-    return pd.DataFrame(
-        {'SNP': snps,
-         'CHR': np.array(file['CHR']),
-         'BP': np.array(file['BP']),
-         'Z_Dom': z_dom_list,
-         'Z_Add': z_add_list,
-         'Z_Rec': z_rec_list,
-         
-         'P_MinP': p_value_min_p,
-         'P_CCT': p_value_cauchy,
-         'P_CMC': p_cmc,
-         'P_MCM': p_mcm
-       
-         })
+    # Correlated Stouffer
+    stouffer_corr_p = []
+    data_matrix = np.column_stack((z_dom_list, z_add_list, z_rec_list))
+
+    k = data_matrix.shape[1]  # Number of tests (columns)
+
+    cor_sum = 0
+    for i in range(k):
+        for j in range(i + 1, k):
+            cor, _ = pearsonr(data_matrix[:, i], data_matrix[:, j])  # Correlation between columns (tests)
+
+            cor_sum += cor
+
+    for row in data_matrix:
+        p_val_stouffer = correlated_Stouffer(values=row, cor_sum=cor_sum, k=k)
+        stouffer_corr_p.append(p_val_stouffer)
+
+
+
+
+    # Build result DataFrame
+    result = pd.DataFrame({
+        'SNP': snps_,
+        'Z_Dom': z_dom_list,
+        'Z_Add': z_add_list,
+        'Z_Rec': z_rec_list,
+        'P_Dom': np.array(p_dom),
+        'P_Add': np.array(p_add),
+        'P_Rec': np.array(p_rec),
+        'P_MinP': p_value_min_p,
+        'P_CCT': p_value_cauchy,
+        'P_CMC': p_cmc,
+        'P_MCM': p_mcm,
+        'P_Stouffer': stouffer_corr_p
+    })
+
+    # Merge in CHR and BP, then reorder columns
+    result = result.merge(chr_bp, left_on='SNP', right_index=True)
+    cols = ['SNP', 'CHR', 'BP'] + [c for c in result.columns if c not in ['SNP', 'CHR', 'BP']]
+    result = result[cols]
+
+    return result
+
+
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":
