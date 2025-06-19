@@ -83,7 +83,7 @@ A tab-delimited file with these columns:
  - A Linux-based OS (e.g. Ubuntu 20.04 LTS)
 - Python 3.10+  
 - Requirements specified in requirements.txt
-- `pyrama_beta_se_meta` binary or script (for beta/SE meta-analysis), compile :  g++ -std=c++11 -O2 -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp
+- `pyrama_beta_se_meta` binary or script (for beta/SE meta-analysis), compile :  g++ -std=c++17 -O3 -pthread -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp
 - 'ref' folder containing LD information of each reference panel in parquet file format (available for download here : ... ). After downloading, extract to the working folder of PYRAMA. The Pheno Scanner LD reference panel is available upon request from the Pheno Scanner database (http://www.phenoscanner.medschl.cam.ac.uk) 
 
 
