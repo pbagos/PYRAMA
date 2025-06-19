@@ -223,7 +223,7 @@ def gwas_meta_analysis(
             # Meta-analysis on imputed files
             script_inputs = ' '.join(imputed_file_lists)
             start_time = time.time()
-            os.system(f"./pyrama_beta_se_meta {script_inputs} > {output_file}")
+            os.system(f"./pyrama_beta_se_meta {nthreads} {script_inputs} > {output_file}")
             elapsed = time.time() - start_time
             print(f"Elapsed time: {elapsed:.2f} seconds")
             print(f"Meta-analysis results saved to {output_file}")
@@ -234,7 +234,7 @@ def gwas_meta_analysis(
         print("Running Meta-Analysis with BETA and SE...")
         print(script_inputs)
         start_time = time.time()
-        os.system(f"./pyrama_beta_se_meta {script_inputs} > {output_file}")
+        os.system(f"./pyrama_beta_se_meta {nthreads} {script_inputs} > {output_file}")
         elapsed = time.time() - start_time
         print(f"Elapsed time: {elapsed:.2f} seconds")
         print(f"Meta-analysis results saved to {output_file}")
