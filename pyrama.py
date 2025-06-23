@@ -269,7 +269,7 @@ def gwas_meta_analysis(
         data_subset = merged_df[case_1_columns]
         if robust_method == 'FAST':
             print("Fast Robust methods analysis/meta-analysis")
-            result = fast_robust_analysis.fast_robust_analysis(data_subset, effect_size_type)
+            result = fast_robust_analysis.fast_robust_analysis(data_subset, effect_size_type, het_est)
         elif bayesian_meta == 'YES':
             print("Bayesian meta-analysis")
             result = bayesian.meta_analysis(

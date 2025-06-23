@@ -18,38 +18,72 @@ def cauchy_cdf(x, x0=0, gamma=1):
     return 0.5 + (np.arctan((x - x0) / gamma) / np.pi)
 
 
-def random_effects_meta_analysis(effects, variances, alpha=0.05):
+def random_effects_meta_analysis(effects, variances, alpha=0.05, het_est="DL"  ):
 
-    # Convert to numpy arrays
-    effects = np.asarray(effects)
-    variances = np.asarray(variances)
-    weights_fixed = 1 / variances
+        effects = np.array(effects)
+        variances = np.array(variances)
+        heterogeneity = het_est
 
-    # Fixed effect estimate and Q statistic
-    fixed_effect = np.sum(weights_fixed * effects) / np.sum(weights_fixed)
-    Q = np.sum(weights_fixed * (effects - fixed_effect)**2)
+        weights_fixed = 1.0 / variances
+        fixed_effect = np.sum(weights_fixed * effects) / np.sum(weights_fixed)
+        Q = np.sum(weights_fixed * (effects - fixed_effect) ** 2)
+        k = len(effects)
+        df = k - 1
+        denom = np.sum(weights_fixed) - np.sum(weights_fixed ** 2) / np.sum(weights_fixed)
 
-    # Degrees of freedom
-    k = len(effects)
-    df = k - 1
+        # Heterogeneity estimator selection
+        if heterogeneity.upper() == "DL":
+            tau2 = max(0, (Q - df) / denom) if denom > 0 else 0.0
 
-    # Estimate between-study variance tau^2
-    C = np.sum(weights_fixed) - (np.sum(weights_fixed**2) / np.sum(weights_fixed))
-    tau_squared = max(0, (Q - df) / C)
+        elif heterogeneity.upper() == "ANOVA":
+            numerator = np.sum((effects - np.mean(effects)) ** 2) / (k - 1)
+            within_variance_avg = np.sum(variances) / k
+            tau2 = max(0, numerator - within_variance_avg)
 
-    # Random effects weights
-    weights_random = 1 / (variances + tau_squared)
+        elif heterogeneity.upper() == "SJ":
 
-    # Pooled effect estimate and its variance
-    pooled_effect = np.sum(weights_random * effects) / np.sum(weights_random)
-    pooled_variance = 1 / np.sum(weights_random)
-    pooled_se = np.sqrt(pooled_variance)
+            yi = effects
+            vi =  variances
 
-    # Z-statistic and p-value for the pooled effect
-    z_stat = pooled_effect / pooled_se
+            # Number of studies
+            k = yi.size
 
+            X = np.ones((k, 1))
+            p = X.shape[1]
 
-    return  z_stat
+            Y_bar = yi.mean()  # sample mean of betas
+            ymci = yi - Y_bar  # mean centered effects
+
+            tau2_0 = np.var(ymci, ddof=0)
+
+            wi = 1.0 / (vi + tau2_0)
+            W = np.diag(wi)  # (k × k)
+
+            XtWX = X.T @ W @ X
+            inv_XtWX = np.linalg.inv(XtWX)
+
+            P = W - W @ X @ inv_XtWX @ X.T @ W
+
+            beta_hat = inv_XtWX @ (X.T @ W @ yi)  # shape (1,)
+
+            fitted = X @ beta_hat  # shape (k,)
+            Ymc = yi - fitted  # residuals
+
+            RSS = float(Ymc.T @ P @ Ymc)
+
+            tau2 = tau2_0 * RSS / (k - p)
+
+        elif heterogeneity.upper() == "FE":
+            tau2 = 0.0
+
+        else:
+            raise ValueError(f"Unsupported heterogeneity estimator: {heterogeneity}. Use 'DL', 'ANOVA', 'SJ', or 'FE'.")
+
+        weights_random = 1.0 / (variances + tau2)
+        overall_effect = np.sum(weights_random * effects) / np.sum(weights_random)
+        overall_se = np.sqrt(1.0 / np.sum(weights_random))
+
+        return overall_effect/overall_se
 
 def correlated_Stouffer(values, cor_sum,k  ):
   
@@ -71,7 +105,7 @@ def correlated_Stouffer(values, cor_sum,k  ):
 
 
 
-def fast_robust_analysis(data, effect_size_type):
+def fast_robust_analysis(data, effect_size_type,het_est):
     # Drop rows with any missing values
     data = data.dropna()
 
@@ -130,9 +164,9 @@ def fast_robust_analysis(data, effect_size_type):
             rec_meta_var.append(var_rec)
 
         # Random-effects meta-analysis for each genetic model
-        z_dom = random_effects_meta_analysis(dom_meta_es, dom_meta_var, alpha=0.05)
-        z_add = random_effects_meta_analysis(add_meta_es, add_meta_var, alpha=0.05)
-        z_rec = random_effects_meta_analysis(rec_meta_es, rec_meta_var, alpha=0.05)
+        z_dom = random_effects_meta_analysis(dom_meta_es, dom_meta_var, alpha=0.05,het_est = het_est)
+        z_add = random_effects_meta_analysis(add_meta_es, add_meta_var, alpha=0.05,het_est= het_est)
+        z_rec = random_effects_meta_analysis(rec_meta_es, rec_meta_var, alpha=0.05,het_est= het_est)
 
         z_dom_list.append(z_dom)
         z_add_list.append(z_add)
@@ -232,15 +266,17 @@ if __name__ == "__main__":
     parser.add_argument("--path", type=str, required=True, help="Path to the directory containing input files.")
     parser.add_argument("--file_list", type=str, required=True, nargs='+',
                         help="List of input data files (space-separated).")
-    parser.add_argument("--effect_size_type", type=str, required=True, help="Type of effect size (e.g., 'OR', 'log').")
+    parser.add_argument("--effect_size_type", type=str, required=True, help="Type of effect size ('OR', 'CATT')")
     parser.add_argument("--output", type=str, default="results.csv", help="Output file name for saving the results.")
 
+    parser.add_argument('--het_est', required = False, default="DL", choices=["DL", "ANOVA", "SJ", "FE"],
+                        help="Heterogeneity estimator: 'DL' (DerSimonian-Laird), 'ANOVA' (Cochran-ANOVA), 'SJ' (Sidik-Jonkman), or 'FE' (Fixed Effects Only)")
     # Parse arguments
     args = parser.parse_args()
 
     # Perform the analysis
     final_results = fast_robust_analysis(path=args.path, file_list=args.file_list,
-                                         effect_size_type=args.effect_size_type)
+                                         effect_size_type=args.effect_size_type,het_est=args.het_est)
 
     # Save results to the output file
     final_results.to_csv(args.output, index=False, sep='\t')
