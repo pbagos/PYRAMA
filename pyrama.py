@@ -122,6 +122,7 @@ def gwas_meta_analysis(
     imp_list: Optional[str] = None,
     nthreads: int = 1,
     missing_threshold: float = 0.5,
+    het_est : str =' '
 ) -> None:
     """
     Run GWAS meta-analysis. Supports imputation when imputation=True.
@@ -223,18 +224,20 @@ def gwas_meta_analysis(
             # Meta-analysis on imputed files
             script_inputs = ' '.join(imputed_file_lists)
             start_time = time.time()
-            os.system(f"./pyrama_beta_se_meta {nthreads} {script_inputs} > {output_file}")
+            
+            os.system(f"./pyrama_beta_se_meta {nthreads} {het_est} {script_inputs} > {output_file}")
             elapsed = time.time() - start_time
             print(f"Elapsed time: {elapsed:.2f} seconds")
             print(f"Meta-analysis results saved to {output_file}")
+         
             return
         
         # No imputation
         script_inputs = ' '.join(input_files)
         print("Running Meta-Analysis with BETA and SE...")
-        print(script_inputs)
+     
         start_time = time.time()
-        os.system(f"./pyrama_beta_se_meta {nthreads} {script_inputs} > {output_file}")
+        os.system(f"./pyrama_beta_se_meta {nthreads} {het_est} {script_inputs} > {output_file}")
         elapsed = time.time() - start_time
         print(f"Elapsed time: {elapsed:.2f} seconds")
         print(f"Meta-analysis results saved to {output_file}")
@@ -332,7 +335,9 @@ _______  __      __  _______    ______   __       __    ______
     parser.add_argument("--biv_ma", default="NO", help="Bivariate meta-analysis (default: NO)")
     parser.add_argument("--imputation", action="store_true", help="Enable imputation step")
     parser.add_argument("--bayesian_meta", default="NO", help="Bayesian meta-analysis (default: NO)")
-   
+    parser.add_argument("--het_est", required = False, default=" ", help="Heterogeneity estimator: 'DL' (DerSimonian-Laird) [default], "
+                             "'ANOVA' (Cochran-ANOVA), 'SJ' (Sidik-Jonkman)")
+
 
 
     parser.add_argument("--r2threshold", help="R2 threshold for imputation.")
@@ -357,6 +362,6 @@ _______  __      __  _______    ______   __       __    ______
         args.robust_method, args.type_of_effect, args.approximate_max,
         args.biv_ma, args.imputation, args.bayesian_meta,
         args.r2threshold, args.population, args.maf, args.ref,
-        args.imp_list, args.nthreads,args.missing_threshold
+        args.imp_list, args.nthreads,args.missing_threshold,args.het_est
 
     )
