@@ -22,9 +22,11 @@ namespace {
     const normal NORMAL_DIST(0.0, 1.0);
 }
 
-// meta_analysis exactly as before
+// Meta-analysis with selectable heterogeneity estimator (het_est: "ANOVA", "SJ", or default DL)
 tuple<double,double,double,double,double,double,double,double,double>
-meta_analysis(const vector<double>& beta, const vector<double>& se) {
+meta_analysis(const vector<double>& beta,
+              const vector<double>& se,
+              const string& het_est = "") {
     size_t n = beta.size();
     if (n == 0) return make_tuple(NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN);
     if (n == 1) {
@@ -33,6 +35,8 @@ meta_analysis(const vector<double>& beta, const vector<double>& se) {
         double p  = 2.0 * cdf(complement(NORMAL_DIST, fabs(z)));
         return make_tuple(p, se0, z, mu, 0.0, NAN, p, mu, z);
     }
+
+    // Fixed-effects weights
     vector<double> var(n), w_fix(n);
     for (size_t i = 0; i < n; ++i) {
         var[i]   = se[i]*se[i];
@@ -41,11 +45,12 @@ meta_analysis(const vector<double>& beta, const vector<double>& se) {
     double sum_w_fix = accumulate(w_fix.begin(), w_fix.end(), 0.0);
     if (sum_w_fix == 0.0) return make_tuple(NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN,NAN);
 
-    double mu_fix = inner_product(w_fix.begin(), w_fix.end(), beta.begin(), 0.0)/sum_w_fix;
+    double mu_fix = inner_product(w_fix.begin(), w_fix.end(), beta.begin(), 0.0) / sum_w_fix;
     double se_fix = sqrt(1.0/sum_w_fix);
     double z_fix  = se_fix>0 ? mu_fix/se_fix : 0.0;
     double p_fix  = 2.0 * cdf(complement(NORMAL_DIST, fabs(z_fix)));
 
+    // Calculate Q and df for default DL estimator
     double Q = 0.0;
     for (size_t i = 0; i < n; ++i) {
         double d = beta[i] - mu_fix;
@@ -55,10 +60,52 @@ meta_analysis(const vector<double>& beta, const vector<double>& se) {
     if (df <= 0 || isnan(Q))
         return make_tuple(NAN,NAN,NAN,NAN,NAN,NAN,p_fix,mu_fix,z_fix);
 
-    double sum_w2 = 0.0;
-    for (double w : w_fix) sum_w2 += w*w;
-    double tau2 = max(0.0, (Q - df) / (sum_w_fix - sum_w2/sum_w_fix));
+    // Heterogeneity estimation
+    double tau2 = 0.0;
+    if (het_est == "ANOVA") {
+        // ANOVA estimator
+        double mean_beta = accumulate(beta.begin(), beta.end(), 0.0) / n;
+        double ss_between = 0.0;
+        for (size_t i = 0; i < n; ++i) {
+            double d = beta[i] - mean_beta;
+            ss_between += d*d;
+        }
+        double numerator = ss_between / (n - 1);
+        double within_var = accumulate(var.begin(), var.end(), 0.0) / n;
+        tau2 = max(0.0, numerator - within_var);
+    }
+    else if (het_est == "SJ") {
+        // Sidik-Jonkman estimator
+        double mean_beta = accumulate(beta.begin(), beta.end(), 0.0) / n;
+        vector<double> yc(n);
+        for (size_t i = 0; i < n; ++i) yc[i] = beta[i] - mean_beta;
+        double tau2_0 = 0.0;
+        for (double v : yc) tau2_0 += v*v;
+        tau2_0 /= n;
 
+        vector<double> wi0(n);
+        double sum_wi0 = 0.0;
+        for (size_t i = 0; i < n; ++i) {
+            wi0[i] = 1.0 / (var[i] + tau2_0);
+            sum_wi0 += wi0[i];
+        }
+        double mu_rand0 = inner_product(wi0.begin(), wi0.end(), beta.begin(), 0.0) / sum_wi0;
+
+        double RSS = 0.0;
+        for (size_t i = 0; i < n; ++i) {
+            double d = beta[i] - mu_rand0;
+            RSS += wi0[i] * d * d;
+        }
+        tau2 = tau2_0 * RSS / (n - 1);
+    }
+    else {
+        // DerSimonian-Laird estimator (default)
+        double sum_w2 = 0.0;
+        for (double w : w_fix) sum_w2 += w*w;
+        tau2 = max(0.0, (Q - df) / (sum_w_fix - sum_w2 / sum_w_fix));
+    }
+
+    // Random-effects model with tau2
     vector<double> w_rand(n);
     for (size_t i = 0; i < n; ++i) {
         w_rand[i] = 1.0 / (var[i] + tau2);
@@ -67,18 +114,18 @@ meta_analysis(const vector<double>& beta, const vector<double>& se) {
     if (sum_w_rand == 0.0)
         return make_tuple(NAN,NAN,NAN,NAN,NAN,NAN,p_fix,mu_fix,z_fix);
 
-    double mu_rand = inner_product(w_rand.begin(), w_rand.end(), beta.begin(), 0.0)/sum_w_rand;
-    double se_rand = sqrt(1.0/sum_w_rand);
-    double z_rand  = se_rand>0 ? mu_rand/se_rand : 0.0;
-    double p_rand  = 2.0 * cdf(complement(NORMAL_DIST, fabs(z_rand)));
+    double mu_rand = inner_product(w_rand.begin(), w_rand.end(), beta.begin(), 0.0) / sum_w_rand;
+    double se_rand = sqrt(1.0 / sum_w_rand);
+    double z_rand = se_rand>0 ? mu_rand/se_rand : 0.0;
+    double p_rand = 2.0 * cdf(complement(NORMAL_DIST, fabs(z_rand)));
 
-    double I2     = (Q>df ? ((Q-df)/Q)*100.0 : 0.0);
+    double I2 = (Q > df ? ((Q - df) / Q) * 100.0 : 0.0);
     chi_squared chi2(df);
-    double p_Q    = cdf(complement(chi2, Q));
+    double p_Q = cdf(complement(chi2, Q));
 
     return make_tuple(
         p_rand, se_rand, z_rand, mu_rand,
-        I2,     p_Q,     p_fix,  mu_fix, z_fix
+        I2, p_Q, p_fix, mu_fix, z_fix
     );
 }
 
@@ -87,12 +134,13 @@ struct Accum {
     vector<double> beta, se;
 };
 
-void process_files(const vector<string>& filenames, unsigned int n_threads) {
+void process_files(const vector<string>& filenames,
+                   unsigned int n_threads,
+                   const string& het_est) {
     if (filenames.empty()) {
         cerr << "Error: no input files provided.\n";
         return;
     }
-
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
@@ -161,7 +209,7 @@ void process_files(const vector<string>& filenames, unsigned int n_threads) {
     for (auto const& kv : snp_map) keys.push_back(kv.first);
     sort(keys.begin(), keys.end());
 
-    cout << "SNP\tCHR\tBP\tN\tP\tSE\tBETA\tI2\tpQ\tBETA(FE)\tP(FE)\n";
+    cout << "SNP\tCHR\tBP\tN\tP\tSE\tBETA\tI2\t pQ\tBETA(FE)\tP(FE)\n";
     cout << scientific << setprecision(4);
 
     if (n_threads == 0) {
@@ -184,7 +232,7 @@ void process_files(const vector<string>& filenames, unsigned int n_threads) {
             for (size_t i = start; i < end; ++i) {
                 auto const& snp = keys[i];
                 auto const& A   = snp_map[snp];
-                auto stats      = meta_analysis(A.beta, A.se);
+                auto stats      = meta_analysis(A.beta, A.se, het_est);
 
                 double p_rand  = get<0>(stats);
                 double se_rand = get<1>(stats);
@@ -223,9 +271,10 @@ void process_files(const vector<string>& filenames, unsigned int n_threads) {
 int main(int argc, char* argv[]) {
     if (argc < 3) {
         cerr << "Usage: " << argv[0]
-             << " <n_threads:0=auto> <input1> [<input2> ...]\n";
+             << " <n_threads:0=auto> [het_est: ANOVA|SJ] <input1> [<input2> ...]\n";
         return 1;
     }
+
     unsigned int n_threads = 0;
     try {
         n_threads = stoi(argv[1]);
@@ -233,7 +282,19 @@ int main(int argc, char* argv[]) {
         cerr << "Error: first argument must be an integer (0 for auto).\n";
         return 1;
     }
-    vector<string> files(argv+2, argv+argc);
-    process_files(files, n_threads);
+
+    // Parse optional heterogeneity estimator argument
+    string het_est = "";
+    int file_start = 2;
+    if (argc >= 4) {
+        string arg = argv[2];
+        if (arg == "ANOVA" || arg == "SJ") {
+            het_est = arg;
+            file_start = 3;
+        }
+    }
+
+    vector<string> files(argv + file_start, argv + argc);
+    process_files(files, n_threads, het_est);
     return 0;
 }
