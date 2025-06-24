@@ -9,6 +9,7 @@ import cont_meta_analysis
 import fast_robust_analysis
 import fast_robust_cont_analysis
 import bayesian
+import cont_bayesian
 from typing import List, Optional
 
 
@@ -289,7 +290,14 @@ def gwas_meta_analysis(
     elif all(col in merged_df.columns for col in case_3_columns):
         print("Continuous phenotype input detected")
         data_subset = merged_df[case_3_columns]
-        if robust_method == 'FAST':
+        if bayesian_meta =='YES':
+                print("Bayesian meta-analysis")
+                result = cont_bayesian.meta_analysis(data_subset, inheritance_model, effect_size_type,robust_method, approximate_max )
+         
+                result.to_csv(output_file, sep='\t', index=False)
+                
+
+        elif robust_method == 'FAST':
             result = fast_robust_cont_analysis.fast_robust_analysis(data_subset , het_est)
         else:
             result = cont_meta_analysis.meta_analysis(data_subset, inheritance_model, robust_method, type_of_effect)
