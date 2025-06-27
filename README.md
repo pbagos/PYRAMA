@@ -203,6 +203,20 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
 ```bash
 python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o continuous_meta.txt   --inheritance_model ADDITIVE   --robust_method MAX   --type_of_effect RANDOM
 ```
+| Flag                          | Description                                                                                 |
+|-------------------------------|---------------------------------------------------------------------------------------------|
+| `--inheritance_model`         | ADDITIVE, RECESSIVE, or DOMINANT                                                            |
+| `--effect_size_type`          | OR (Odds Ratio) or CATT (Cochran–Armitage trend test)                                       |
+| `--robust_method`             | MIN, MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
+| `--type_of_effect`            | FIXED or RANDOM                                                                             |
+| `--bayesian_meta`             | YES to run Bayesian meta-analysis (default NO). Available  for Discrete and Continuous Phenotypes Inputs |
+| `-n`, `--nthreads`            | Number of parallel threads for file I/O (default: 1)                                        |
+| `--het_est`                   | Heterogeneity estimator: 'DL' (DerSimonian-Laird) [default], "'ANOVA' (Cochran-ANOVA), 'SJ' (Sidik-Jonkman) |
+
+
+
+
+
 ## Use case scenario data 
 
 The replication report is available at analysis_code.html  file of this repository with all data and results.
