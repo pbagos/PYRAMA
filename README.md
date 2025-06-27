@@ -87,7 +87,10 @@ A tab-delimited file with these columns:
  - A Linux-based OS (e.g. Ubuntu 20.04 LTS)
 - Python 3.10+  
 - Requirements specified in requirements.txt
-- `pyrama_beta_se_meta` binary or script (for beta/SE meta-analysis), compile :  `g++ -std=c++17 -O3 -pthread -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp`
+- `pyrama_beta_se_meta` binary or script (for beta/SE meta-analysis), compile :
+```
+g++ -std=c++17 -O3 -pthread -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp
+```
 - 'ref' folder containing LD information of each reference panel in parquet file format (available for download here : ... ). After downloading, extract to the working folder of PYRAMA. The Pheno Scanner LD reference panel is available upon request from the Pheno Scanner database (http://www.phenoscanner.medschl.cam.ac.uk) 
 
 
@@ -109,8 +112,11 @@ A tab-delimited file with these columns:
    ```bash
    pip install -r requirements.txt
    ```
-4. Ensure `pred_ld.py` is executable and on your `PATH`, and `pyrama_beta_se_meta` is compiled  [Compile : `g++ -std=c++17 -O3 -pthread -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp`].
-
+4. Ensure `pred_ld.py` is executable and on your `PATH`, and `pyrama_beta_se_meta` is compiled
+   Compile : 
+   ```
+   g++ -std=c++17 -O3 -pthread -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp
+   ```
 
 5. If you wish to download the LD reference panels to conduct summary statistics imputation with PRED-LD, visit this link: [link here...]
 
