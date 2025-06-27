@@ -138,7 +138,6 @@ Common options:
 | `--effect_size_type`          | OR (odds ratio) or CATT (Cochran–Armitage trend test)                                       |
 | `--robust_method`             | MIN, MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
 | `--type_of_effect`            | FIXED or RANDOM                                                                             |
-| `--approximate_max`           | YES or NO                                                                                   |
 | `--bayesian_meta`             | YES to run Bayesian meta-analysis (default NO). Available only for Discrete Phenotype Input |
 | `--imputation`                | Summary statistics imputation of missing SNPs  (only for BETA/SE input)                     |
 | `--r2threshold`               | R² threshold for  imputation                                                                |
@@ -166,10 +165,34 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
   ```bash
   python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]    --o standard_meta.txt     --inheritance_model DOMINANT     --effect_size_type CATT     --robust_method MIN     --type_of_effect FIXED  
   ```
+
+| Flag                          | Description                                                                                 |
+|-------------------------------|---------------------------------------------------------------------------------------------|
+| `--inheritance_model`         | ADDITIVE, RECESSIVE, or DOMINANT                                                            |
+| `--effect_size_type`          | OR (Odds Ratio) or CATT (Cochran–Armitage trend test)                                       |
+| `--robust_method`             | MIN, MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
+| `--type_of_effect`            | FIXED or RANDOM                                                                             |
+| `--bayesian_meta`             | YES to run Bayesian meta-analysis (default NO). Available  for Discrete and Continuous Phenotypes Inputs |
+| `-n`, `--nthreads`            | Number of parallel threads for file I/O (default: 1)                                        |
+
+  
 - **Fast Robust**  
   ```bash
-  python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]    --o fast_meta.txt     --inheritance_model ADDITIVE     --effect_size_type OR     --robust_method FAST    
+  python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]    --o fast_meta.txt     --inheritance_model ADDITIVE     --effect_size_type OR     --robust_method FAST   --het_est DL
   ```
+
+| Flag                          | Description                                                                                 |
+|-------------------------------|---------------------------------------------------------------------------------------------|
+| `--inheritance_model`         | ADDITIVE, RECESSIVE, or DOMINANT                                                            |
+| `--effect_size_type`          | OR (Odds Ratio) or CATT (Cochran–Armitage trend test)                                       |
+| `--robust_method`             | MIN, MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
+| `--type_of_effect`            | FIXED or RANDOM                                                                             |
+| `--bayesian_meta`             | YES to run Bayesian meta-analysis (default NO). Available  for Discrete and Continuous Phenotypes Inputs |
+| `-n`, `--nthreads`            | Number of parallel threads for file I/O (default: 1)                                        |
+| `--het_est`                   | Heterogeneity estimator: 'DL' (DerSimonian-Laird) [default], "'ANOVA' (Cochran-ANOVA), 'SJ' (Sidik-Jonkman) |
+
+
+  
 - **Bayesian**  
   ```bash
   python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]     --o bayes_meta.txt     --bayesian_meta YES     --inheritance_model ADDITIVE     --effect_size_type OR     
