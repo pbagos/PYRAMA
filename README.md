@@ -27,8 +27,13 @@ A Python tool for robust analysis and meta-analysis of Genome Wide Association S
 
 ## Features
 
-- **Meta-analysis with many input formats**: BETA/SE, discrete phenotypes and continuous phenotypes (see below).
-
+(1)	Quality Control
+(2)	Robust analysis and meta-analysis of GWAS
+(3)	Standard GWAS meta-analysis
+(4)	Bayesian meta-analysis
+(5)	Meta-analysis with summary statistics imputation
+(6)	Functional enrichment analysis
+ 
  
 ### 1. Discrete Phenotypes
 
