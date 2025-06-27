@@ -111,10 +111,10 @@ A tab-delimited file with these columns:
    ```
 4. Ensure `pred_ld.py` is executable and on your `PATH`, and `pyrama_beta_se_meta` is compiled  [Compile : `g++ -std=c++17 -O3 -pthread -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp`].
 
----
 
 5. If you wish to download the LD reference panels to conduct summary statistics imputation with PRED-LD, visit this link: [link here...]
 
+---
 ## Usage
 
  
