@@ -112,8 +112,8 @@ g++ -std=c++17 -O3 -pthread -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp
    ```bash
    pip install -r requirements.txt
    ```
-4. Ensure `pred_ld.py` is executable and on your `PATH`, and `pyrama_beta_se_meta` is compiled
-   Compile : 
+4. Ensure `pred_ld.py` is executable and on your `PATH`, and `pyrama_beta_se_meta` is compiled.
+   Compile with the following command: 
    ```
    g++ -std=c++17 -O3 -pthread -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp
    ```
