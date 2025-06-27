@@ -27,14 +27,15 @@ A Python tool for robust analysis and meta-analysis of Genome Wide Association S
 
 ## Features
 
-1. Quality Control
-2. Robust analysis and meta-analysis of GWAS
-3. Standard GWAS meta-analysis
-4. Bayesian meta-analysis
-5. Meta-analysis with summary statistics imputation
-6. Functional enrichment analysis
- 
-### 1. Discrete Phenotypes
+1. Quality Control 
+2. Robust analysis and meta-analysis of GWAS (For Discrete and Continuous phenotypes inputs)
+3. Standard GWAS meta-analysis 
+4. Bayesian meta-analysis (For Discrete and Continuous phenotypes inputs)
+5. Meta-analysis with summary statistics imputation (only for BETA/SE input)
+6. Functional enrichment analysis 
+
+### File inputs examples 
+#### 1. Discrete Phenotypes
 
 A tab-delimited file with the following columns:
 
@@ -48,7 +49,7 @@ A tab-delimited file with the following columns:
 
  
 
-### 2. Continuous Phenotypes
+#### 2. Continuous Phenotypes
 
 A tab-delimited file with the following columns:
 
@@ -61,7 +62,7 @@ A tab-delimited file with the following columns:
 | rs10000010 | 1   | 200 | -0.0109  | 1.001  | 1354 | 0.006966  | 0.9842 | 2628 | -0.002799| 1.032  | 126  |
 
   
-### 3. BETA/SE Format
+#### 3. BETA/SE Format
 
 A tab-delimited file with these columns:
 
