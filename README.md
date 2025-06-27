@@ -5,21 +5,23 @@
 A Python tool for robust analysis and meta-analysis of Genome Wide Association Studies.
 
 ---
-
+ 
 ## Table of Contents
 
 - [Features](#features)  
+- [File Inputs Examples](#file-inputs-examples)  
+  - [1. Discrete Phenotypes](#1-discrete-phenotypes)  
+  - [2. Continuous Phenotypes](#2-continuous-phenotypes)  
+  - [3. BETA/SE Format](#3-betase-format)  
 - [Requirements](#requirements)  
 - [Installation](#installation)  
 - [Usage](#usage)  
-  - [GWAS Meta-Analysis (Main CLI)](#gwas-meta-analysis-main-cli)  
+  - [GWAS Meta-Analysis](#gwas-meta-analysis)  
     - [Case 2: Direct BETA/SE (No Imputation)](#case-2-direct-betase-no-imputation)  
     - [Case 2: BETA/SE + Imputation](#case-2-betase--imputation)  
     - [Case 1: Discrete Counts (Standard, Fast, Bayesian)](#case-1-discrete-counts-standard-fast-bayesian)  
     - [Case 3: Continuous Phenotype](#case-3-continuous-phenotype)  
-    - [Bivariate Meta-Analysis](#bivariate-meta-analysis)  
-- [Examples](#examples)
-- [Use case scenario data](#use-case-scenario-data)
+- [Use Case Scenario Data](#use-case-scenario-data)  
 - [Contributing](#contributing)  
 - [License](#license)  
 
@@ -47,7 +49,18 @@ A tab-delimited file with the following columns:
 | rs4  | 10  | 44481115  | 2   | 37  | 228 | 8   | 76  | 186 |
 | rs5  | 4   | 68116450  | 21  | 109 | 137 | 43  | 129 | 98  |
 
- 
+ | Column | Description                                                              |
+| ------ | ------------------------------------------------------------------------ |
+| `SNP`  | SNP identifier (e.g., rsID).                                             |
+| `CHR`  | Chromosome number where the SNP is located.                              |
+| `BP`   | Base-pair position of the SNP on the chromosome (genomic coordinate).    |
+| `aa1`  | Count of individuals with the homozygous reference genotype in cases.    |
+| `ab1`  | Count of individuals with the heterozygous genotype in cases.            |
+| `bb1`  | Count of individuals with the homozygous alternate genotype in cases.    |
+| `aa0`  | Count of individuals with the homozygous reference genotype in controls. |
+| `ab0`  | Count of individuals with the heterozygous genotype in controls.         |
+| `bb0`  | Count of individuals with the homozygous alternate genotype in controls. |
+
 
 #### 2. Continuous Phenotypes
 
@@ -61,6 +74,20 @@ A tab-delimited file with the following columns:
 | rs1000000  | 1   | 100 | -0.02187 | 0.9836 | 172  | -0.002833 | 1.001  | 1320 | 0.00291  | 1.001  | 2578 |
 | rs10000010 | 1   | 200 | -0.0109  | 1.001  | 1354 | 0.006966  | 0.9842 | 2628 | -0.002799| 1.032  | 126  |
 
+| Column | Description                                                                  |
+| ------ | ---------------------------------------------------------------------------- |
+| `SNP`  | SNP identifier (e.g., rsID).                                                 |
+| `CHR`  | Chromosome number where the SNP is located.                                  |
+| `BP`   | Base-pair position of the SNP on the chromosome.                             |
+| `xaa`  | Mean phenotype value for individuals with the homozygous reference genotype. |
+| `sdaa` | Standard deviation of the phenotype in the homozygous reference group.       |
+| `naa`  | Number of individuals with the homozygous reference genotype.                |
+| `xab`  | Mean phenotype value for individuals with the heterozygous genotype.         |
+| `sdab` | Standard deviation of the phenotype in the heterozygous group.               |
+| `nab`  | Number of individuals with the heterozygous genotype.                        |
+| `xbb`  | Mean phenotype value for individuals with the homozygous alternate genotype. |
+| `sdbb` | Standard deviation of the phenotype in the homozygous alternate group.       |
+| `nbb`  | Number of individuals with the homozygous alternate genotype.                |
   
 #### 3. BETA/SE Format
 
@@ -74,11 +101,15 @@ A tab-delimited file with these columns:
 | rs1106839  | 1   | 19420391  | A  | G  | 0.004437813  | 0.124570835  |
 | rs2274001  | 1   | 19464772  | T  | C  | 0.012144373  | 0.124526074  |
 
-
-  
-- **Robust methods**: MIN, MAX, MERT, or FAST (MinP, Cauchy, CMC, MCM Combination tests).  
-- **Bayesian meta-analysis**  
-- **Summary statistics imputation** with LD statistics as reference panels (`pred_ld.py`).  
+| Column | Description                                                          |
+| ------ | -------------------------------------------------------------------- |
+| `SNP`  | SNP identifier (e.g., rsID).                                         |
+| `CHR`  | Chromosome number where the SNP is located.                          |
+| `BP`   | Base-pair position of the SNP on the chromosome.                     |
+| `A1`   | Effect allele (the allele associated with the reported effect size). |
+| `A2`   | Non-effect allele (the alternative allele).                          |
+| `BETA` | Estimated effect size (OR/log(OR). |
+| `SE`   | Standard error of the estimated effect size.                         |
  
 ---
 
