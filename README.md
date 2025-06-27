@@ -155,8 +155,20 @@ g++ -std=c++17 -O3 -pthread -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp
 ---
 ## Usage
 
+### Quality control
+Before conducting an analysis or a meta-analysis, we recommend that users execute the quality control script that accompanies PYRAMA. This script performs essential preprocessing steps, including the removal of problematic rows from the input studies, verification of allele order (harmonization) and allele consistency across all datasets, and generation of a comprehensive quality control report. Additional-ly, it calculates the number of shared variants for each combination of studies, providing users with a clear overview of the variant over-lap among the imported studies. 
+
+```bash
+python quality_control .py \
+  --input_files study1.txt study2.txt [study3.txt ...]    --output final_merged_gwas.txt  [--skip_harm (optional)]
+```
  
-  
+| Flag                          | Description                                                                                 |
+|-------------------------------|---------------------------------------------------------------------------------------------|
+| `--input_files`         |	List of input GWAS files (tab-delimited). Each file should contain columns: SNP, CHR, BP, A1, A2, BETA, and SE. You must provide at least one input file.                                                        |
+| `--output`          | Output filename for the final merged and harmonized GWAS data. Will be written in tab-separated format.                                   |
+| `--skip_harm` | If set, skips the allele harmonization and filtering steps involving A1/A2. Use this when harmonization is not needed or when input lacks allele information.
+ 
 ### GWAS Meta-Analysis  
 ```bash
 python pyrama.py   --i study1.txt study2.txt [study3.txt ...]   --o output_results.txt   [options]
