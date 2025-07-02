@@ -190,19 +190,19 @@ Common options:
 | `--missing_threshold`         | Fraction of studies that must include a SNP (default 0.5). When set to 0, it performs  imputation in all given variants|
 | `-n`, `--nthreads`            | Number of parallel threads for file I/O (default: 1)                                        |
 
-#### Case 2: Direct BETA/SE (No Imputation)
+#### Case: Direct BETA/SE (No Imputation)
 
 ```bash
 python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o beta_se_meta.txt    
 ```
 
-#### Case 2: BETA/SE + Imputation
+#### Case: BETA/SE + Imputation
 
 ```bash
 python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_meta.txt    --imputation   --r2threshold 0.8   --population EUR   --maf 0.01   --ref all_panels   --missing_threshold 0.0    
 ```
 
-#### Case 1: Discrete Counts (Standard, Fast, Bayesian)
+#### Case: Discrete Phenotypes (Standard, Fast, Bayesian)
 
 - **Standard**  
   ```bash
@@ -241,7 +241,7 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
   python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]     --o bayes_meta.txt     --bayesian_meta YES     --inheritance_model ADDITIVE     --effect_size_type OR     
   ```
 
-#### Case 3: Continuous Phenotype
+#### Case: Continuous Phenotypes
 
 ```bash
 python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o continuous_meta.txt   --inheritance_model ADDITIVE   --robust_method MAX   --type_of_effect RANDOM
