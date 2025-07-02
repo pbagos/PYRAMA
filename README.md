@@ -164,9 +164,9 @@ python quality_control .py  --input_files study1.txt study2.txt [study3.txt ...]
  
 | Flag                          | Description                                                                                 |
 |-------------------------------|---------------------------------------------------------------------------------------------|
-| `--input_files`         |	List of input GWAS files (tab-delimited). Each file should contain columns: SNP, CHR, BP, A1, A2, BETA, and SE. You must provide at least one input file.                                                        |
-| `--output`          | Output filename for the final merged and harmonized GWAS data. Will be written in tab-separated format.                                   |
-| `--skip_harm` | If set, skips the allele harmonization and filtering steps involving A1/A2. Use this when harmonization is not needed or when input lacks allele information.
+| `--input_files` |	List of input GWAS files (tab-delimited). Each file should contain columns: SNP, CHR, BP, A1, A2, BETA, and SE. You must provide at least one input file.|
+| `--output` | Output filename for the final merged and harmonized GWAS data. Will be written in tab-separated format.|
+| `--skip_harm` | If set, skips the allele harmonization and filtering steps involving A1/A2. Use this when harmonization is not needed or when input lacks allele information.|
  
 ### GWAS Meta-Analysis  
 ```bash
