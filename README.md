@@ -159,8 +159,7 @@ g++ -std=c++17 -O3 -pthread -o pyrama_beta_se_meta PYRAMA_beta_SE_meta.cpp
 Before conducting an analysis or a meta-analysis, we recommend that users execute the quality control script that accompanies PYRAMA. This script performs essential preprocessing steps, including the removal of problematic rows from the input studies, verification of allele order (harmonization) and allele consistency across all datasets, and generation of a comprehensive quality control report. Additional-ly, it calculates the number of shared variants for each combination of studies, providing users with a clear overview of the variant over-lap among the imported studies. 
 
 ```bash
-python quality_control .py \
-  --input_files study1.txt study2.txt [study3.txt ...]    --output final_merged_gwas.txt  [--skip_harm (optional)]
+python quality_control .py  --input_files study1.txt study2.txt [study3.txt ...]    --output final_merged_gwas.txt  [--skip_harm (optional)]
 ```
  
 | Flag                          | Description                                                                                 |
