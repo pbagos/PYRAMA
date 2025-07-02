@@ -204,6 +204,24 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o beta_se_met
 ```bash
 python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_meta.txt    --imputation   --r2threshold 0.8   --population EUR   --maf 0.01   --ref all_panels   --missing_threshold 0.0    
 ```
+##### Output columns
+
+| Column     | Description                                                                 |
+|------------|-----------------------------------------------------------------------------|
+| `SNP`  | SNP identifier (e.g., rsID).                                                 |
+| `CHR`  | Chromosome number where the SNP is located                                  |
+| `BP`   | Base-pair position of the SNP on the chromosome                             |
+| `N`          | Number of valid studies for this variant|
+| `P`          | P-value of Random Effects meta-analysis|
+| `SE`         | Standard error|
+| `BETA`       | Random Effects estimate |
+| `I2`         | Heterogeneity index (I² statistic) in Random Effects meta-analysis|
+| `pQ`         | P-value for heterogeneity (often from Cochran's Q test)|
+| `BETA(FE)`   | Fixed Effect estimate|
+| `P(FE)`      | P-value for the Fixed Effect meta-analysis|
+
+
+
 
 #### Case: Discrete Phenotypes (Standard, Fast, Bayesian)
 
@@ -223,11 +241,27 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
 | `--bayesian_meta`             | YES to run Bayesian meta-analysis (default NO). Available  for Discrete and Continuous Phenotypes Inputs |
 | `-n`, `--nthreads`            | Number of parallel threads for file I/O (default: 1)                                        |
 
+
+##### Output columns
+
+| Column     | Description                                                                 |
+|------------|-----------------------------------------------------------------------------|
+| `SNP`  | SNP identifier (e.g., rsID).                                                 |
+| `CHR`  | Chromosome number where the SNP is located                                  |
+| `BP`   | Base-pair position of the SNP on the chromosome                             |
+| `P`    | P-value of the analysis/meta-analysis|
+| `CI_lower`| Lower confidence interval|
+| `CI_upper`| Upper confidence interval|
+| `Weighted_Mean`|Analysis estimate|
+
+
+
   
 - **Fast Robust**  
   ```bash
   python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]    --o fast_meta.txt     --inheritance_model ADDITIVE     --effect_size_type OR     --robust_method FAST   --het_est DL
   ```
+
 
 | Flag                          | Description                                                                                 |
 |-------------------------------|---------------------------------------------------------------------------------------------|
@@ -241,12 +275,54 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
 | `-n`, `--nthreads`            | Number of parallel threads for file I/O (default: 1)                                        |
 | `--het_est`                   | Heterogeneity estimator: 'DL' (DerSimonian-Laird) [default], "'ANOVA' (Cochran-ANOVA), 'SJ' (Sidik-Jonkman) |
 
+##### Output columns
+
+| Column     | Description                                                                 |
+|------------|-----------------------------------------------------------------------------|
+| `SNP`  | SNP identifier (e.g., rsID).                                                 |
+| `CHR`  | Chromosome number where the SNP is located                                  |
+| `BP`   | Base-pair position of the SNP on the chromosome                             |
+| `Z_Dom`    | Z-score value of the dominant model|
+| `Z_Add`    | Z-score value of the additive (allelic) model|
+| `Z_Rec`    | Z-score value of the recessive model|
+| `P_Dom`    | p-value from the Dominant model|
+| `P_Add`    | p-value from the Additive (Allelic) model|
+| `P_Rec`    | p-value from the Recessive model|
+| `P_MinP`    | p-value from the MinP combination test|
+| `P_CCT`    | p-value from the  Cauchy combination test (CCT)|
+| `P_CMC`    | p-value from the  CMC combination test|
+| `P_MCM`    | p-value from the  MCM combination test|
+| `P_Stouffer` | p-value from the Stouffer's method for dependent tests combination test|
+
+
+
+ 
+
+
 
   
 - **Bayesian**  
   ```bash
   python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]     --o bayes_meta.txt     --bayesian_meta YES     --inheritance_model ADDITIVE     --effect_size_type OR     
   ```
+##### Output columns
+
+| Column     | Description                                                                 |
+|------------|-----------------------------------------------------------------------------|
+| `SNP`  | SNP identifier (e.g., rsID).                                                 |
+| `CHR`  | Chromosome number where the SNP is located                                  |
+| `BP`   | Base-pair position of the SNP on the chromosome                             |
+| `P`    | P-value of the analysis/meta-analysis|
+| `Z`    | Z-score value of the analysis/meta-analysis|
+| `CI_low`| Lower confidence interval|
+| `CI_upp`| Upper confidence interval|
+| `E_m`    | Posterior expectation for the population parameter μ |
+| `E_tau_square`    | Posterior expectation of the between study variability τ^2|
+| `V_mu`    | Variance of the posterior distribution for the population parameter μ |
+| `V_tau_square`    | Posterior variance of the between study variability τ^2|
+ 
+
+
 
 #### Case: Continuous Phenotypes
 
@@ -266,6 +342,18 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o continuous
 | `--het_est`                   | Heterogeneity estimator: 'DL' (DerSimonian-Laird) [default], "'ANOVA' (Cochran-ANOVA), 'SJ' (Sidik-Jonkman) |
 
 
+##### Output columns
+
+| Column     | Description                                                                 |
+|------------|-----------------------------------------------------------------------------|
+| `SNP`  | SNP identifier (e.g., rsID).                                                 |
+| `CHR`  | Chromosome number where the SNP is located                                  |
+| `BP`   | Base-pair position of the SNP on the chromosome                             |
+| `P`    | P-value of the analysis/meta-analysis|
+| `Z`    | Z-score value of the analysis/meta-analysis|
+| `CI_lower`| Lower confidence interval|
+| `CI_upper`| Upper confidence interval|
+| `Weighted_Mean`|Analysis estimate|
 
 
 
