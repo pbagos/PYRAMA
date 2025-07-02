@@ -170,13 +170,15 @@ python quality_control .py  --input_files study1.txt study2.txt [study3.txt ...]
  
 ### GWAS Meta-Analysis  
 ```bash
-python pyrama.py   --i study1.txt study2.txt [study3.txt ...]   --o output_results.txt   [options]
+python pyrama.py  --i study1.txt study2.txt [study3.txt ...]  --o output_results.txt   [options]
 ```
 
 Common options:
 
 | Flag                          | Description                                                                                 |
 |-------------------------------|---------------------------------------------------------------------------------------------|
+| `--i`, `--input`, `--input_file`|  Paths to input data files (space-separated when multiple files are inserted)             |
+| `--o`, `--output`, `--output_file`|  Path to output files                                                                    |
 | `--inheritance_model`         | ADDITIVE, RECESSIVE, or DOMINANT                                                            |
 | `--effect_size_type`          | OR (odds ratio) or CATT (Cochran–Armitage trend test)                                       |
 | `--robust_method`             | MIN, MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
@@ -212,6 +214,8 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
 
 | Flag                          | Description                                                                                 |
 |-------------------------------|---------------------------------------------------------------------------------------------|
+| `--i`, `--input`, `--input_file`|  Paths to input data files (space-separated when multiple files are inserted)             |
+| `--o`, `--output`, `--output_file`|  Path to output files                                                                    |
 | `--inheritance_model`         | ADDITIVE, RECESSIVE, or DOMINANT                                                            |
 | `--effect_size_type`          | OR (Odds Ratio) or CATT (Cochran–Armitage trend test)                                       |
 | `--robust_method`             | MIN, MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
@@ -227,6 +231,8 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
 
 | Flag                          | Description                                                                                 |
 |-------------------------------|---------------------------------------------------------------------------------------------|
+| `--i`, `--input`, `--input_file`|  Paths to input data files (space-separated when multiple files are inserted)             |
+| `--o`, `--output`, `--output_file`|  Path to output files                                                                    |
 | `--inheritance_model`         | ADDITIVE, RECESSIVE, or DOMINANT                                                            |
 | `--effect_size_type`          | OR (Odds Ratio) or CATT (Cochran–Armitage trend test)                                       |
 | `--robust_method`             | MIN, MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
@@ -249,6 +255,8 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o continuous
 ```
 | Flag                          | Description                                                                                 |
 |-------------------------------|---------------------------------------------------------------------------------------------|
+| `--i`, `--input`, `--input_file`|  Paths to input data files (space-separated when multiple files are inserted)             |
+| `--o`, `--output`, `--output_file`|  Path to output files                                                                    |
 | `--inheritance_model`         | ADDITIVE, RECESSIVE, or DOMINANT                                                            |
 | `--effect_size_type`          | OR (Odds Ratio) or CATT (Cochran–Armitage trend test)                                       |
 | `--robust_method`             | MIN, MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
