@@ -189,6 +189,7 @@ Common options:
 | `--ref`                       | Reference panel identifier (e.g. TOP_LD, Pheno_Scanner, Hap_Map, all_panels[default])       |
 | `--missing_threshold`         | Fraction of studies that must include a SNP (default 0.5). When set to 0, it performs  imputation in all given variants|
 | `-n`, `--nthreads`            | Number of parallel threads for file I/O (default: 1)                                        |
+| `--het_est`                   | Heterogeneity estimator: 'DL' (DerSimonian-Laird) [default], "'ANOVA' (Cochran-ANOVA), 'SJ' (Sidik-Jonkman) |
 
 #### Case: Direct BETA/SE (No Imputation)
 
