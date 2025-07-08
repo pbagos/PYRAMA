@@ -228,21 +228,28 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
 
 #### Case: Discrete Phenotypes (Standard, Fast, Bayesian)
 
-- **Standard**  
-  ```bash
-  python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]    --o standard_meta.txt     --inheritance_model DOMINANT     --effect_size_type CATT     --robust_method MIN     --type_of_effect FIXED  
-  ```
-
 | Flag                          | Description                                                                                 |
 |-------------------------------|---------------------------------------------------------------------------------------------|
 | `--i`, `--input`, `--input_file`|  Paths to input data files (space-separated when multiple files are inserted)             |
 | `--o`, `--output`, `--output_file`|  Path to output files                                                                    |
-| `--inheritance_model`         | ADDITIVE, RECESSIVE, or DOMINANT                                                            |
+| `--inheritance_model`         | ADDITIVE, RECESSIVE, DOMINANT or ALL  (to enable robust methods)                             |
 | `--effect_size_type`          | OR (Odds Ratio) or CATT (Cochran–Armitage trend test)                                       |
-| `--robust_method`             | MIN, MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
+| `--robust_method`             | MIN (MIN2), MAX, MERT, or FAST (MinP, Cauchy, MCM and CMC combination tests)                       |
 | `--type_of_effect`            | FIXED or RANDOM                                                                             |
 | `--bayesian_meta`             | YES to run Bayesian meta-analysis (default NO). Available  for Discrete and Continuous Phenotypes Inputs |
 | `-n`, `--nthreads`            | Number of parallel threads for file I/O (default: 1)                                        |
+
+
+
+- **Standard**  
+  ```bash
+  python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o standard_meta.txt   --inheritance_model ADDITIVE   --effect_size_type OR   --type_of_effect FIXED  
+  ```
+
+- **MIN2/MAX/MERT robust methods**  
+  ```bash
+  python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o standard_meta.txt   --inheritance_model ADDITIVE   --effect_size_type OR     --robust_method MIN --type_of_effect RANDOM  
+  ```
 
 
 ##### Output columns
@@ -262,7 +269,7 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
   
 - **Fast Robust**  
   ```bash
-  python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]    --o fast_meta.txt     --inheritance_model ADDITIVE     --effect_size_type OR     --robust_method FAST   --het_est DL
+  python pyrama.py     --i study1.txt  study2.txt [study3.txt ...]    --o fast_meta.txt     --inheritance_model ALL     --effect_size_type OR     --robust_method FAST   --het_est DL
   ```
 
 
@@ -297,9 +304,6 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
 | `P_MCM`    | p-value from the  MCM combination test|
 | `P_Stouffer` | p-value from the Stouffer's method for dependent tests combination test|
 
-
-
- 
 
 
 
