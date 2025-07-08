@@ -379,7 +379,7 @@ python plots.py   --i  ressults_file.txt
 
 ## Enrichment Analysis 
 
-You can perform Manhattan Enrichment Analysis with gProfiler for your GWAS analysis/meta-analysis results.
+You can perform Enrichment Analysis with gProfiler for your GWAS analysis/meta-analysis results.
 
 ```bash
 python enrichment_analysis.py -i input_snps.txt -o gprofiler_results.csv -p gprofiler_manhattan.png -s 0.01 --organism hsapiens --sources GO:BP KEGG REAC --no_iea
