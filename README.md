@@ -106,13 +106,13 @@ A tab-delimited file with these columns:
 
 | Column | Description                                                          |
 | ------ | -------------------------------------------------------------------- |
-| `SNP`  | SNP identifier (e.g., rsID).                                         |
-| `CHR`  | Chromosome number where the SNP is located.                          |
-| `BP`   | Base-pair position of the SNP on the chromosome.                     |
-| `A1`   | Effect allele (the allele associated with the reported effect size). |
-| `A2`   | Non-effect allele (the alternative allele).                          |
-| `BETA` | Estimated effect size (OR/log(OR). |
-| `SE`   | Standard error of the estimated effect size.                         |
+| `SNP`  | SNP identifier (e.g., rsID)                                         |
+| `CHR`  | Chromosome number where the SNP is located                          |
+| `BP`   | Base-pair position of the SNP on the chromosome                     |
+| `A1`   | Effect allele (the allele associated with the reported effect size) |
+| `A2`   | Non-effect allele (the alternative allele)                          |
+| `BETA` | Estimated effect size (OR/log(OR)) |
+| `SE`   | Standard error of the estimated effect size                         |
  
 ---
 
