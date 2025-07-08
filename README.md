@@ -362,6 +362,39 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o continuous
 | `CI_upper`| Upper confidence interval|
 | `Weighted_Mean`|Analysis estimate|
 
+## Plots 
+
+You can generate Manhattan plots and QQ-plots from your GWAS analysis/meta-analysis results.
+
+```bash
+python plots.py   --i  ressults_file.txt
+```
+
+| Arguments                          | Description                                                                                 |
+|-------------------------------|---------------------------------------------------------------------------------------------|
+| `--i`, `--input`| Path to input tab separated file with SNP,CHR,BP,P columns       |
+| `--o`, `--output`|  Prefix for output files (default: gwas_plot)                                                                    |
+| `--dpi`         | Resolution for figures in dpi (default: 600)                                                        |
+
+
+## Enrichment Analysis 
+
+You can perform Manhattan Enrichment Analysis with gProfiler for your GWAS analysis/meta-analysis results.
+
+```bash
+python enrichment_analysis.py -i input_snps.txt -o gprofiler_results.csv -p gprofiler_manhattan.png -s 0.01 --organism hsapiens --sources GO:BP KEGG REAC --no_iea
+```
+
+| Arguments          | Description                                                                 |
+|------------------------|-----------------------------------------------------------------------------|
+| `-i`, `--input`        | Input tab-delimited file with `'SNP'` and `'P'` columns                    |
+| `-o`, `--output`       | Output CSV file for enrichment results                                     |
+| `-p`, `--plot`         | Output PNG file for Enrichment Analysis Manhattan plot                                   |
+| `-s`, `--significance` | Adjusted p-value significance threshold [default=0.05]                                   |
+| `--organism`           | Organism name for g:Profiler (e.g., `'hsapiens'`)                          |
+| `--sources`            | Data sources to query (e.g., GO:BP GO:CC KEGG). If omitted, all available sources will be used. |
+| `--no_iea`             | Exclude electronic GO annotations (IEA)                                    |
+
 
 
 ## Use case scenario data 
