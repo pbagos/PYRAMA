@@ -189,7 +189,7 @@ Common options:
 | `--bayesian_meta`             | YES to run Bayesian meta-analysis (default NO). Available only for Discrete Phenotype Input |
 | `--imputation`                | Summary statistics imputation of missing SNPs  (only for BETA/SE input)                     |
 | `--r2threshold`               | R² threshold for  imputation                                                                |
-| `--population`                | Population code (e.g. EUR, AFR) for imputation                                              |
+| `--population`                | Population code (EUR, AFR,EAS and SAS) for imputation                                              |
 | `--maf`                       | Minor allele frequency cutoff for imputation                                                |
 | `--ref`                       | Reference panel identifier (e.g. TOP_LD, Pheno_Scanner, Hap_Map, all_panels[default])       |
 | `--missing_threshold`         | Fraction of studies that must include a SNP (default 0.5). When set to 0, it performs  imputation in all given variants|
