@@ -248,7 +248,7 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]   --o imputed_met
 
 - **MIN2/MAX/MERT robust methods**  
   ```bash
-  python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o standard_meta.txt   --inheritance_model ADDITIVE   --effect_size_type OR     --robust_method MIN --type_of_effect RANDOM  
+  python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o standard_meta.txt   --inheritance_model ALL   --effect_size_type OR     --robust_method MIN --type_of_effect RANDOM  
   ```
 
 
