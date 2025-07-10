@@ -210,45 +210,53 @@ def fast_robust_analysis(data, effect_size_type,het_est):
     stouffer_corr_p = []
     data_matrix = np.column_stack((z_dom_list, z_add_list, z_rec_list))
 
-    k = data_matrix.shape[1]  # Number of tests (columns)
+    # Number of SNPs (observations)
+    n_snps = len(z_dom_list)
+    
+    # Prepare storage for the Stouffer p-values
+    if n_snps <= 1:
+        # If only one SNP, we cannot estimate correlations – fill with NaN
+        stouffer_corr_p = [np.nan] * n_snps
+    else:
+        # Stack your Z‐lists into an (n_snps × 3) matrix
+        data_matrix = np.column_stack((z_dom_list, z_add_list, z_rec_list))
+        k = data_matrix.shape[1]  # should be 3 tests: Dom, Add, Rec
 
-    cor_sum = 0
-    for i in range(k):
-        for j in range(i + 1, k):
-            cor, _ = pearsonr(data_matrix[:, i], data_matrix[:, j])  # Correlation between columns (tests)
+        # Compute sum of pairwise correlations across tests
+        cor_sum = 0.0
+        for i in range(k):
+            for j in range(i + 1, k):
+                cor, _ = pearsonr(data_matrix[:, i], data_matrix[:, j])
+                cor_sum += cor
 
-            cor_sum += cor
-
-    for row in data_matrix:
-        p_val_stouffer = correlated_Stouffer(values=row, cor_sum=cor_sum, k=k)
-        stouffer_corr_p.append(p_val_stouffer)
-
-
-
+        # Apply correlated Stouffer to each row
+        stouffer_corr_p = []
+        for row in data_matrix:
+            p_val = correlated_Stouffer(values=row, cor_sum=cor_sum, k=k)
+            stouffer_corr_p.append(p_val)
 
     # Build result DataFrame
     result = pd.DataFrame({
-        'SNP': snps_,
-        'Z_Dom': z_dom_list,
-        'Z_Add': z_add_list,
-        'Z_Rec': z_rec_list,
-        'P_Dom': np.array(p_dom),
-        'P_Add': np.array(p_add),
-        'P_Rec': np.array(p_rec),
-        'P_MinP': p_value_min_p,
-        'P_CCT': p_value_cauchy,
-        'P_CMC': p_cmc,
-        'P_MCM': p_mcm,
+        'SNP':       snps_,
+        'Z_Dom':     z_dom_list,
+        'Z_Add':     z_add_list,
+        'Z_Rec':     z_rec_list,
+        'P_Dom':     np.array(p_dom),
+        'P_Add':     np.array(p_add),
+        'P_Rec':     np.array(p_rec),
+        'P_MinP':    p_value_min_p,
+        'P_CCT':     p_value_cauchy,
+        'P_CMC':     p_cmc,
+        'P_MCM':     p_mcm,
         'P_Stouffer': stouffer_corr_p
     })
 
-    # Merge in CHR and BP, then reorder columns
+    # Merge in CHR/BP and reorder
     result = result.merge(chr_bp, left_on='SNP', right_index=True)
     cols = ['SNP', 'CHR', 'BP'] + [c for c in result.columns if c not in ['SNP', 'CHR', 'BP']]
     result = result[cols]
 
     return result
-
 
 
 
