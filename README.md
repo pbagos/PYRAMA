@@ -8,27 +8,28 @@ A Python tool for robust analysis and meta-analysis of Genome Wide Association S
  
 ## 📑 Table of Contents
 
+## 📑 Table of Contents
+
 - [Features](#features)
-- [Input File Formats](#input-file-formats)
-  - [Discrete Phenotypes](#discrete-phenotypes)
-  - [Continuous Phenotypes](#continuous-phenotypes)
-  - [BETA/SE Format](#betase-format)
+- [File inputs examples](#file-inputs-examples)
+  - [1. Discrete Phenotypes](#1-discrete-phenotypes)
+  - [2. Continuous Phenotypes](#2-continuous-phenotypes)
+  - [3. BETA/SE Format](#3-betase-format)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
-  - [Quality Control](#quality-control)
+  - [Quality control](#quality-control)
   - [GWAS Meta-Analysis](#gwas-meta-analysis)
-    - [BETA/SE Format](#case-direct-betase-no-imputation)
-      - [Without Imputation](#case-direct-betase-no-imputation)
-      - [With Imputation](#case-betase--imputation)
-    - [Discrete Phenotypes](#case-discrete-phenotypes-standard-fast-bayesian)
-      - [Standard Meta-Analysis](#case-discrete-phenotypes-standard-fast-bayesian)
-      - [Fast Robust Analysis](#case-discrete-phenotypes-standard-fast-bayesian)
-      - [Bayesian Meta-Analysis](#case-discrete-phenotypes-standard-fast-bayesian)
-    - [Continuous Phenotypes](#case-continuous-phenotypes)
-- [Use Case Scenario Data](#use-case-scenario-data)
+    - [Case: Direct BETA/SE (No Imputation)](#case-direct-betase-no-imputation)
+    - [Case: BETA/SE + Imputation](#case-betase--imputation)
+    - [Case: Discrete Phenotypes (Standard, Fast, Bayesian)](#case-discrete-phenotypes-standard-fast-bayesian)
+    - [Case: Continuous Phenotypes](#case-continuous-phenotypes)
+- [Plots](#plots)
+- [Enrichment Analysis](#enrichment-analysis)
+- [Use case scenario data](#use-case-scenario-data)
 - [Contributing](#contributing)
 - [License](#license)
+
 
 ## Features
 
