@@ -8,8 +8,6 @@ A Python tool for robust analysis and meta-analysis of Genome Wide Association S
  
 ## 📑 Table of Contents
 
-## 📑 Table of Contents
-
 - [Features](#features)
 - [File inputs examples](#file-inputs-examples)
   - [1. Discrete Phenotypes](#1-discrete-phenotypes)
