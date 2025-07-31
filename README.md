@@ -1,8 +1,7 @@
- # PYRAMA
+ # PYRAMA: A Python tool for Robust Analysis and Meta-Analysis of Genome Wide Association Studies
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-PYRAMA: A Python tool for Robust Analysis and Meta-Analysis of Genome Wide Association Studies
 
 ---
  
