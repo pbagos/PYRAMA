@@ -2,7 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-A Python tool for robust analysis and meta-analysis of Genome Wide Association Studies.
+PYRAMA: A Python tool for Robust Analysis and Meta-Analysis of Genome Wide Association Studies
 
 ---
  
