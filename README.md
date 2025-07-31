@@ -365,7 +365,7 @@ python pyrama.py   --i study1.txt  study2.txt [study3.txt ...]    --o continuous
 You can generate Manhattan plots and QQ-plots from your GWAS analysis/meta-analysis results.
 
 ```bash
-python plots.py   --i  ressults_file.txt
+python plots.py   --i  results_file.txt
 ```
 
 | Arguments                          | Description                                                                                 |
