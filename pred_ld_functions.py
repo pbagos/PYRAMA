@@ -649,7 +649,7 @@ def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp
     )
     maf_lazy = (
         pl.scan_parquet(maf_path)
-          .select(["Position", "rsID", "MAF", "REF", "ALT"])
+          .select(["Uniq_ID", "rsID", "MAF", "REF", "ALT"])
           .filter(pl.col("MAF") >= maf_threshold)
           .filter(pl.col("rsID").is_in(all_rsids))
     )
@@ -661,25 +661,25 @@ def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp
     )
     ld_lazy = (
         pl.scan_parquet(ld_path)
-          .select(["SNP1", "SNP2", "R2", "+/-corr", "Dprime"])
+          .select(["Uniq_ID_1", "Uniq_ID_2", "R2", "+/-corr", "Dprime"])
           .filter(pl.col("R2") >= R2_threshold)
     )
 
     # 4) Prepare two MAF views for joining
     maf1 = maf_lazy.rename({
-        "Position": "SNP1", "rsID": "rsID1", "MAF": "MAF1",
+        "Uniq_ID": "Uniq_ID_1", "rsID": "rsID1", "MAF": "MAF1",
         "REF":      "REF1", "ALT": "ALT1"
     })
     maf2 = maf_lazy.rename({
-        "Position": "SNP2", "rsID": "rsID2", "MAF": "MAF2",
+        "Uniq_ID": "Uniq_ID_2", "rsID": "rsID2", "MAF": "MAF2",
         "REF":      "REF2", "ALT": "ALT2"
     })
 
     # 5) Join LD ↔ MAF1 ↔ MAF2 all lazily
     joined = (
         ld_lazy
-          .join(maf1, on="SNP1", how="inner")
-          .join(maf2, on="SNP2", how="inner")
+          .join(maf1, on="Uniq_ID_1", how="inner")
+          .join(maf2, on="Uniq_ID_2", how="inner")
     )
 
     # 6) If you provided an imp_snp_list, filter rsID roles
@@ -691,8 +691,8 @@ def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp
 
     # 7) Select + rename final output columns
     final_lazy = joined.select([
-        pl.col("SNP1").alias("pos1"),
-        pl.col("SNP2").alias("pos2"),
+        pl.col("Uniq_ID_1").alias("pos1"),
+        pl.col("Uniq_ID_2").alias("pos2"),
         "R2", "+/-corr", "Dprime",
         "rsID1", "rsID2",
         "MAF1", "MAF2",
