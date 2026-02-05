@@ -4,7 +4,15 @@
 
 
 ---
- 
+## Citation
+
+If you use PYRAMA in your research, please consider citing:
+
+Georgios A Manios, Sophia Nteli, Panagiota I Kontou, Pantelis G Bagos, PYRAMA: An open-source tool for advanced meta-analysis of genome wide association studies, Bioinformatics, 2026;, btag054, https://doi.org/10.1093/bioinformatics/btag054
+
+## Web Tool 
+The web tool available at: https://compgen.dib.uth.gr/PYRAMA/
+
 ## 📑 Table of Contents
 
 - [Features](#features)
